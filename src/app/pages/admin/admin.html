@@ -1,0 +1,324 @@
+<div class="admin-page">
+  <div class="admin-header">
+    <h1>Admin Panel</h1>
+    <a routerLink="/" class="back-link">← Dashboard</a>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn" [class.active]="activeTab() === 'rewards'" (click)="activeTab.set('rewards')">
+      Reward Rules
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'sync'" (click)="activeTab.set('sync')">
+      Sync Settings
+      @if (pendingCount > 0) {
+        <span class="tab-badge">{{ pendingCount }}</span>
+      }
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'medicine'" (click)="activeTab.set('medicine')">
+      Medicine Search
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'customers'" (click)="activeTab.set('customers')">
+      Customers ({{ customers.length }})
+    </button>
+  </div>
+
+  <!-- Tab: Reward Rules -->
+  @if (activeTab() === 'rewards') {
+    <div class="tab-content card">
+      <h2>Reward Configuration</h2>
+      <p class="desc">Configure how points are earned and redeemed. Changes take effect immediately for new transactions.</p>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Points per ₹100 spent</label>
+          <div class="input-with-hint">
+            <input
+              type="number"
+              [ngModel]="rewardForm().pointsPerHundredRupees"
+              (ngModelChange)="updateRewardField('pointsPerHundredRupees', +$event)"
+              min="0"
+              step="0.5"
+              class="input"
+            />
+            <span class="input-hint">e.g. 1 = earn 1 pt for every ₹100</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>₹ Value of 1 Point (when redeeming)</label>
+          <div class="input-with-hint">
+            <input
+              type="number"
+              [ngModel]="rewardForm().rupeeValuePerPoint"
+              (ngModelChange)="updateRewardField('rupeeValuePerPoint', +$event)"
+              min="0"
+              step="0.5"
+              class="input"
+            />
+            <span class="input-hint">e.g. 1 = 1 pt = ₹1 discount</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Minimum bill to earn points (₹)</label>
+          <input
+            type="number"
+            [ngModel]="rewardForm().minBillAmountToEarn"
+            (ngModelChange)="updateRewardField('minBillAmountToEarn', +$event)"
+            min="0"
+            class="input"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Minimum bill to redeem points (₹)</label>
+          <input
+            type="number"
+            [ngModel]="rewardForm().minBillAmountToRedeem"
+            (ngModelChange)="updateRewardField('minBillAmountToRedeem', +$event)"
+            min="0"
+            class="input"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Maximum redemption per bill (%)</label>
+          <div class="input-with-hint">
+            <input
+              type="number"
+              [ngModel]="rewardForm().maxRedemptionPercentage"
+              (ngModelChange)="updateRewardField('maxRedemptionPercentage', +$event)"
+              min="0"
+              max="100"
+              class="input"
+            />
+            <span class="input-hint">Max % of bill that can be paid using points</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div class="preview-box">
+        <strong>Preview:</strong> On a ₹500 bill → earn
+        <span class="earn-text">{{ (5 * rewardForm().pointsPerHundredRupees) | number: '1.0-1' }} pts</span>.
+        100 pts = ₹{{ (100 * rewardForm().rupeeValuePerPoint) | number: '1.0-0' }} discount.
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" (click)="saveRewardConfig()">Save Configuration</button>
+        @if (rewardSaved()) {
+          <span class="saved-msg">Saved</span>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Tab: Sync Settings -->
+  @if (activeTab() === 'sync') {
+    <div class="tab-content card">
+      <h2>Data Synchronization</h2>
+      <p class="desc">
+        All transactions are saved locally first. When a backend server URL is provided,
+        pending transactions will automatically sync in the background.
+      </p>
+
+      <div class="sync-status-bar">
+        <div class="sync-stat">
+          <span class="sync-stat-value pending-color">{{ pendingCount }}</span>
+          <span class="sync-stat-label">Pending Sync</span>
+        </div>
+        <div class="sync-stat">
+          <span class="sync-stat-value">{{ stats.totalTransactions - pendingCount }}</span>
+          <span class="sync-stat-label">Synced</span>
+        </div>
+        @if (syncService.lastSyncAttempt()) {
+          <div class="sync-stat">
+            <span class="sync-stat-value text-sm">{{ formatDate(syncService.lastSyncAttempt()!) }}</span>
+            <span class="sync-stat-label">Last Attempt</span>
+          </div>
+        }
+      </div>
+
+      <div class="form-group">
+        <label>Server API URL</label>
+        <div class="input-with-hint">
+          <input
+            type="url"
+            [ngModel]="syncForm().apiUrl"
+            (ngModelChange)="updateSyncField('apiUrl', $event)"
+            placeholder="https://your-backend.com/api"
+            class="input"
+          />
+          <span class="input-hint">Leave empty to disable sync (offline-only mode)</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Sync interval (seconds)</label>
+        <input
+          type="number"
+          [ngModel]="syncForm().intervalSeconds"
+          (ngModelChange)="updateSyncField('intervalSeconds', +$event)"
+          min="10"
+          max="3600"
+          class="input input-sm"
+        />
+      </div>
+
+      <div class="form-group toggle-group">
+        <label class="toggle-label">
+          <input
+            type="checkbox"
+            [ngModel]="syncForm().enabled"
+            (ngModelChange)="updateSyncField('enabled', $event)"
+          />
+          Enable Auto-Sync
+        </label>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" (click)="saveSyncConfig()">Save Sync Settings</button>
+        <button
+          class="btn btn-secondary"
+          (click)="triggerSync()"
+          [disabled]="isSyncing() || !syncForm().apiUrl"
+        >
+          {{ isSyncing() ? 'Syncing...' : 'Sync Now' }}
+        </button>
+        @if (syncSaved()) {
+          <span class="saved-msg">Saved</span>
+        }
+      </div>
+
+      @if (!syncForm().apiUrl) {
+        <div class="info-box">
+          <strong>Offline Mode:</strong> All data is stored locally in this browser.
+          Add a server URL above when your backend is ready.
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Tab: Medicine Search -->
+  @if (activeTab() === 'medicine') {
+    <div class="tab-content card">
+      <h2>Medicine Lookup</h2>
+      <p class="desc">
+        Billing always searches local medicine data first (offline safe).
+        When enabled, it also calls your endpoint for live suggestions and MRP.
+      </p>
+
+      <div class="info-box compact">
+        <strong>Offline local master:</strong> {{ localMedicineCount }} medicines available for fallback.
+      </div>
+
+      <div class="form-group toggle-group">
+        <label class="toggle-label">
+          <input
+            type="checkbox"
+            [ngModel]="medicineForm().enabled"
+            (ngModelChange)="updateMedicineField('enabled', $event)"
+          />
+          Enable Online Medicine Search
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label>Medicine Search Endpoint URL</label>
+        <div class="input-with-hint">
+          <input
+            type="url"
+            [ngModel]="medicineForm().endpointUrl"
+            (ngModelChange)="updateMedicineField('endpointUrl', $event)"
+            placeholder="https://your-api.com/medicines/search"
+            class="input"
+          />
+          <span class="input-hint">Default is NIH RxTerms v3 (free, no key). RxTerms does not include MRP; cashier can enter price manually.</span>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Minimum characters before search</label>
+          <input
+            type="number"
+            [ngModel]="medicineForm().minQueryLength"
+            (ngModelChange)="updateMedicineField('minQueryLength', +$event)"
+            min="1"
+            max="6"
+            class="input input-sm"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Maximum suggestions shown</label>
+          <input
+            type="number"
+            [ngModel]="medicineForm().maxSuggestions"
+            (ngModelChange)="updateMedicineField('maxSuggestions', +$event)"
+            min="3"
+            max="20"
+            class="input input-sm"
+          />
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" (click)="saveMedicineConfig()">Save Medicine Settings</button>
+        @if (medicineSaved()) {
+          <span class="saved-msg">Saved</span>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Tab: Customers -->
+  @if (activeTab() === 'customers') {
+    <div class="tab-content card">
+      <h2>All Customers ({{ customers.length }})</h2>
+
+      @if (customers.length > 0) {
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Mobile</th>
+                <th>Points</th>
+                <th>Member Since</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of customers; track c.id; let i = $index) {
+                <tr>
+                  <td class="row-num">{{ i + 1 }}</td>
+                  <td>
+                    <div class="customer-mini">
+                      <span class="avatar-sm">{{ c.name.charAt(0).toUpperCase() }}</span>
+                      <strong>{{ c.name }}</strong>
+                    </div>
+                  </td>
+                  <td>{{ c.mobile }}</td>
+                  <td><span class="points-tag">{{ c.pointsBalance }} pts</span></td>
+                  <td>{{ formatDate(c.createdAt) }}</td>
+                  <td>
+                    <button class="btn btn-ghost btn-sm" (click)="viewCustomer(c.id)">View</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="empty-state">
+          <div class="empty-icon">Customers</div>
+          <p>No customers registered yet.</p>
+          <a routerLink="/billing" class="btn btn-primary">Register First Customer</a>
+        </div>
+      }
+    </div>
+  }
+</div>

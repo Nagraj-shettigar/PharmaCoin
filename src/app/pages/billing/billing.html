@@ -1,0 +1,419 @@
+<div class="billing-page">
+
+  <!-- STEP: LOOKUP -->
+  @if (step() === 'lookup') {
+    <div class="step-card">
+      <div class="step-header">
+        <h2>Customer Lookup</h2>
+        <p>Enter the customer's mobile number to search or register</p>
+      </div>
+
+      <div class="form-group">
+        <label>Mobile Number</label>
+        <div class="input-row">
+          <input
+            type="tel"
+            [ngModel]="mobileInput()"
+            (ngModelChange)="mobileInput.set($event)"
+            placeholder="10-digit mobile number"
+            maxlength="10"
+            class="input"
+            (keydown.enter)="onLookup()"
+            autofocus
+          />
+          <button class="btn btn-primary" (click)="onLookup()">Search</button>
+        </div>
+        @if (lookupError()) {
+          <p class="error-text">{{ lookupError() }}</p>
+        }
+      </div>
+
+      <!-- Found Existing Customer -->
+      @if (foundCustomer() && !isNewCustomer()) {
+        <div class="customer-found-card">
+          <div class="customer-found-header">
+            <span class="customer-avatar">{{ foundCustomer()!.name.charAt(0).toUpperCase() }}</span>
+            <div>
+              <h3>{{ foundCustomer()!.name }}</h3>
+              <span class="mobile-label">Mobile: {{ foundCustomer()!.mobile }}</span>
+            </div>
+            <div class="points-chip">
+              <span class="points-value">{{ foundCustomer()!.pointsBalance }}</span>
+              <span class="points-label">pts available</span>
+            </div>
+          </div>
+          <div class="customer-found-actions">
+            <button class="btn btn-primary btn-full" (click)="onProceedToBilling()">
+              Proceed to Billing →
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- New Customer Registration -->
+      @if (isNewCustomer()) {
+        <div class="new-customer-card">
+          <div class="new-badge">New Customer</div>
+          <p>No account found for <strong>{{ mobileInput() }}</strong>. Register now:</p>
+          <div class="form-group">
+            <label>Customer Name *</label>
+            <input
+              type="text"
+              [ngModel]="newCustomerName()"
+              (ngModelChange)="newCustomerName.set($event)"
+              placeholder="Full name"
+              class="input"
+              (keydown.enter)="onRegisterAndBill()"
+            />
+          </div>
+          <button class="btn btn-success btn-full" (click)="onRegisterAndBill()">
+            Register & Start Billing →
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- STEP: BILLING -->
+  @if (step() === 'billing') {
+    <div class="billing-step">
+
+      <!-- Customer Info Bar -->
+      <div class="customer-bar">
+        <div class="customer-bar-left">
+          <span class="customer-avatar sm">{{ foundCustomer()!.name.charAt(0).toUpperCase() }}</span>
+          <div>
+            <strong>{{ foundCustomer()!.name }}</strong>
+            <span class="mobile-label">Mobile: {{ foundCustomer()!.mobile }}</span>
+          </div>
+        </div>
+        <div class="points-chip">
+          <span class="points-value">{{ foundCustomer()!.pointsBalance }}</span>
+          <span class="points-label">pts</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" (click)="step.set('lookup')">← Change</button>
+      </div>
+
+      <div class="billing-body">
+        <!-- Left Column: Bill Entry -->
+        <div class="bill-entry-card card">
+          <div class="card-header">
+            <h3>Bill Details</h3>
+            <div class="mode-toggle">
+              <button
+                class="mode-btn"
+                [class.active]="billMode() === 'simple'"
+                (click)="setBillMode('simple')"
+              >Simple</button>
+              <button
+                class="mode-btn"
+                [class.active]="billMode() === 'detailed'"
+                (click)="setBillMode('detailed')"
+              >Detailed</button>
+            </div>
+          </div>
+
+          <!-- Simple Mode -->
+          @if (billMode() === 'simple') {
+            <div class="form-group">
+              <label>Total Bill Amount (₹)</label>
+              <input
+                type="number"
+                [ngModel]="simpleBillAmount()"
+                (ngModelChange)="simpleBillAmount.set($event)"
+                placeholder="0.00"
+                min="0"
+                class="input input-large"
+              />
+            </div>
+          }
+
+          <!-- Detailed Mode -->
+          @if (billMode() === 'detailed') {
+            <div class="medicine-section">
+              <!-- Add Medicine Row -->
+              <div class="add-medicine-row">
+                <div class="medicine-search-wrap med-name">
+                  <input
+                    type="text"
+                    [ngModel]="newMedicineName()"
+                    (ngModelChange)="onMedicineNameChange($event)"
+                    (keydown)="onMedicineKeydown($event)"
+                    (focus)="onMedicineInputFocus()"
+                    (blur)="onMedicineInputBlur()"
+                    placeholder="Medicine name"
+                    class="input"
+                    autocomplete="off"
+                  />
+
+                  @if (showMedicineSuggestions() && medicineSuggestions().length > 0) {
+                    <div class="suggestions-dropdown">
+                      @for (item of medicineSuggestions(); track item.id) {
+                        <button
+                          type="button"
+                          class="suggestion-item"
+                          [class.active]="activeSuggestionIndex() === $index"
+                          (mousedown)="$event.preventDefault()"
+                          (mouseenter)="onSuggestionHover($index)"
+                          (click)="selectMedicineSuggestion(item)"
+                        >
+                          <span class="suggestion-title">{{ item.name }}</span>
+                          <span class="suggestion-meta">
+                            @if (item.packSize) {
+                              {{ item.packSize }}
+                            }
+                            @if (item.manufacturer) {
+                              {{ item.packSize ? ' | ' : '' }}{{ item.manufacturer }}
+                            }
+                            @if (item.mrp != null) {
+                              | MRP ₹{{ item.mrp | number: '1.2-2' }}
+                            } @else {
+                              | MRP not provided
+                            }
+                            | {{ item.source === 'remote' ? 'online' : 'offline' }}
+                          </span>
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+                <input
+                  type="number"
+                  [ngModel]="newMedicineQty()"
+                  (ngModelChange)="newMedicineQty.set($event)"
+                  placeholder="Qty"
+                  min="1"
+                  class="input med-qty"
+                />
+                <input
+                  type="number"
+                  [ngModel]="newMedicinePrice()"
+                  (ngModelChange)="onPriceChange($event)"
+                  placeholder="Unit ₹"
+                  min="0"
+                  class="input med-price"
+                />
+                <button class="btn btn-secondary btn-sm" (click)="addMedicine()">+ Add</button>
+              </div>
+
+              @if (medicineLookupLoading()) {
+                <p class="medicine-helper-text">Searching medicines...</p>
+              }
+
+              @if (medicineLookupError()) {
+                <p class="medicine-helper-text warning">{{ medicineLookupError() }}</p>
+              }
+
+              @if (newMedicineMrp() != null) {
+                <p class="medicine-helper-text ok">
+                  MRP fetched: ₹{{ newMedicineMrp()! | number: '1.2-2' }}
+                  @if (isPriceOverridden()) {
+                    <span class="override-tag">Manual price override</span>
+                  }
+                </p>
+              } @else if (selectedMedicine()) {
+                <p class="medicine-helper-text warning">
+                  MRP not available from selected source. Enter Unit ₹ manually.
+                </p>
+              }
+
+              <!-- Medicine List -->
+              @if (medicines().length > 0) {
+                <table class="medicine-table">
+                  <thead>
+                    <tr>
+                      <th>Medicine</th>
+                      <th>MRP</th>
+                      <th>Qty</th>
+                      <th>Unit ₹</th>
+                      <th>Total</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (med of medicines(); track $index) {
+                      <tr>
+                        <td>
+                          <div>{{ med.name }}</div>
+                          @if (med.packSize || med.manufacturer) {
+                            <small class="muted-row">
+                              {{ med.packSize ?? '' }}{{ med.packSize && med.manufacturer ? ' | ' : '' }}{{ med.manufacturer ?? '' }}
+                            </small>
+                          }
+                        </td>
+                        <td>
+                          @if (med.mrp != null) {
+                            ₹{{ med.mrp | number: '1.2-2' }}
+                          } @else {
+                            —
+                          }
+                        </td>
+                        <td>{{ med.quantity }}</td>
+                        <td>
+                          ₹{{ med.price | number: '1.2-2' }}
+                          @if (med.isPriceOverridden) {
+                            <span class="override-tag">override</span>
+                          }
+                        </td>
+                        <td><strong>₹{{ (med.quantity * med.price) | number: '1.2-2' }}</strong></td>
+                        <td>
+                          <button class="btn-remove" (click)="removeMedicine($index)">✕</button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              } @else {
+                <div class="empty-medicines">Add medicines above to calculate bill</div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Right Column: Summary & Rewards -->
+        <div class="reward-summary-card card">
+          <div class="card-header">
+            <h3>Bill Summary</h3>
+          </div>
+
+          <div class="summary-rows">
+            <div class="summary-row">
+              <span>Bill Amount</span>
+              <span class="amount">₹{{ billAmount() | number: '1.2-2' }}</span>
+            </div>
+
+            <!-- Points to Earn -->
+            @if (billAmount() > 0) {
+              <div class="summary-row earn-row">
+                <span>Points to Earn</span>
+                <span class="earn-points">+{{ earnedPoints() }} pts</span>
+              </div>
+              @if (billAmount() < rewardConfig().minBillAmountToEarn) {
+                <p class="hint">Min ₹{{ rewardConfig().minBillAmountToEarn }} needed to earn points</p>
+              }
+            }
+
+            <!-- Redeem Section -->
+            <div class="redeem-section">
+              <div class="redeem-toggle-row">
+                <label class="toggle-label">
+                  <input
+                    type="checkbox"
+                    [ngModel]="redeemEnabled()"
+                    (ngModelChange)="redeemEnabled.set($event); onRedeemToggle()"
+                    [disabled]="!canRedeem()"
+                  />
+                  <span>Redeem Points</span>
+                </label>
+                @if (!canRedeem() && foundCustomer()!.pointsBalance > 0) {
+                  <span class="hint">Min ₹{{ rewardConfig().minBillAmountToRedeem }} bill required</span>
+                }
+                @if (foundCustomer()!.pointsBalance === 0) {
+                  <span class="hint">No points available</span>
+                }
+              </div>
+
+              @if (redeemEnabled() && canRedeem()) {
+                <div class="redeem-input-row">
+                  <label>Points to Redeem (max {{ maxRedeemable().maxPoints }})</label>
+                  <input
+                    type="range"
+                    [ngModel]="pointsToRedeemInput()"
+                    (ngModelChange)="pointsToRedeemInput.set($event); clampRedeemPoints()"
+                    [min]="0"
+                    [max]="maxRedeemable().maxPoints"
+                    class="range-input"
+                  />
+                  <div class="redeem-value-display">
+                    <input
+                      type="number"
+                      [ngModel]="pointsToRedeemInput()"
+                      (ngModelChange)="pointsToRedeemInput.set(+$event); clampRedeemPoints()"
+                      [max]="maxRedeemable().maxPoints"
+                      min="0"
+                      class="input redeem-num"
+                    />
+                    <span class="redeem-equals">= ₹{{ redeemValue() | number: '1.2-2' }} off</span>
+                  </div>
+                </div>
+                <div class="summary-row redeem-row">
+                  <span>Discount Applied</span>
+                  <span class="redeem-amount">−₹{{ redeemValue() | number: '1.2-2' }}</span>
+                </div>
+              }
+            </div>
+
+            <div class="summary-divider"></div>
+            <div class="summary-row net-row">
+              <span><strong>Net Amount to Pay</strong></span>
+              <span class="net-amount">₹{{ netAmount() | number: '1.2-2' }}</span>
+            </div>
+          </div>
+
+          <button
+            class="btn btn-success btn-full btn-complete"
+            (click)="onCompleteTransaction()"
+            [disabled]="!canComplete()"
+          >
+            Complete Transaction
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- STEP: COMPLETE -->
+  @if (step() === 'complete') {
+    <div class="step-card complete-card">
+      <div class="success-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+          <path d="m8.2 12.3 2.4 2.4 5.3-5.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h2>Transaction Complete!</h2>
+
+      @if (lastTransaction(); as tx) {
+        <div class="receipt">
+          <div class="receipt-row">
+            <span>Customer</span>
+            <strong>{{ tx.customerName }}</strong>
+          </div>
+          <div class="receipt-row">
+            <span>Mobile</span>
+            <span>{{ tx.customerMobile }}</span>
+          </div>
+          <div class="receipt-row">
+            <span>Bill Amount</span>
+            <span>₹{{ tx.billAmount | number: '1.2-2' }}</span>
+          </div>
+          @if (tx.pointsRedeemed > 0) {
+            <div class="receipt-row">
+              <span>Points Redeemed</span>
+              <span class="redeem-amount">−{{ tx.pointsRedeemed }} pts (₹{{ tx.redeemedValue | number: '1.2-2' }})</span>
+            </div>
+          }
+          <div class="receipt-row net-row">
+            <span><strong>Net Paid</strong></span>
+            <strong>₹{{ tx.netAmount | number: '1.2-2' }}</strong>
+          </div>
+          <div class="receipt-divider"></div>
+          <div class="receipt-row">
+            <span>Points Earned</span>
+            <span class="earn-points">+{{ tx.pointsEarned }} pts</span>
+          </div>
+          <div class="receipt-row">
+            <span>New Points Balance</span>
+            <strong class="earn-points">{{ tx.newBalance }} pts</strong>
+          </div>
+        </div>
+      }
+
+      <div class="complete-actions">
+        <button class="btn btn-primary" (click)="onNewBillSameCustomer()">New Bill (Same Customer)</button>
+        <button class="btn btn-secondary" (click)="onViewCustomer()">View Customer</button>
+        <button class="btn btn-ghost" (click)="onNewBill()">New Customer</button>
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,685 @@
+.billing-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 20px 56px;
+}
+
+/* Step Card (Lookup & Complete) */
+.step-card {
+  max-width: 520px;
+  margin: 0 auto;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.87));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 32px;
+  border: 1px solid rgba(186, 216, 228, 0.85);
+}
+
+.step-header {
+  margin-bottom: 24px;
+}
+
+.step-header h2 {
+  font-size: 1.4rem;
+  margin: 0 0 6px;
+}
+
+.step-header p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Customer Found */
+.customer-found-card {
+  margin-top: 20px;
+  border: 1px solid #b8dbe9;
+  border-radius: var(--radius);
+  padding: 20px;
+  background: linear-gradient(145deg, #f3fbff, #e9f7fc);
+}
+
+.customer-found-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.customer-found-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.customer-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.customer-avatar.sm {
+  width: 38px;
+  height: 38px;
+  font-size: 1rem;
+}
+
+.mobile-label {
+  color: var(--text-secondary);
+  font-size: 0.87rem;
+  display: block;
+  margin-top: 2px;
+}
+
+.points-chip {
+  margin-left: auto;
+  background: linear-gradient(135deg, #036992, #1b8b8e);
+  color: white;
+  border-radius: 14px;
+  padding: 8px 14px;
+  text-align: center;
+  min-width: 80px;
+}
+
+.points-value {
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.points-label {
+  font-size: 0.72rem;
+  opacity: 0.85;
+}
+
+.customer-found-actions {
+  margin-top: 4px;
+}
+
+/* New Customer */
+.new-customer-card {
+  margin-top: 20px;
+  border: 1px solid #ffd39e;
+  border-radius: var(--radius);
+  padding: 20px;
+  background: linear-gradient(150deg, #fffaf2, #fff5e8);
+}
+
+.new-badge {
+  display: inline-block;
+  background: var(--accent);
+  color: white;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+/* Customer Bar */
+.customer-bar {
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.84));
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  border: 1px solid rgba(186, 216, 228, 0.85);
+}
+
+.customer-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.customer-bar-left strong {
+  font-size: 1rem;
+  display: block;
+}
+
+/* Billing Body */
+.billing-step {
+  /* full width */
+}
+
+.billing-body {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .billing-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.86));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  border: 1px solid rgba(186, 216, 228, 0.8);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1.03rem;
+  font-weight: 800;
+}
+
+/* Mode Toggle */
+.mode-toggle {
+  display: flex;
+  border: 1px solid #cfe2eb;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f1f8fb;
+}
+
+.mode-btn {
+  background: none;
+  border: none;
+  padding: 6px 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background 0.12s;
+}
+
+.mode-btn.active {
+  background: linear-gradient(135deg, var(--primary), #1a8f98);
+  color: white;
+  font-weight: 600;
+}
+
+/* Form elements */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cce0e9;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  background: white;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  border-color: #3aa1c9;
+  box-shadow: 0 0 0 4px rgba(58, 161, 201, 0.14);
+}
+
+.input-large {
+  font-size: 1.4rem;
+  font-weight: 600;
+  padding: 14px 16px;
+  text-align: right;
+}
+
+.input-row {
+  display: flex;
+  gap: 10px;
+}
+
+.input-row .input {
+  flex: 1;
+}
+
+/* Medicine */
+.medicine-section {
+  /* */
+}
+
+.add-medicine-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.med-name {
+  flex: 2;
+  min-width: 120px;
+}
+
+.medicine-search-wrap {
+  position: relative;
+}
+
+.suggestions-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 20;
+  background: #fff;
+  border: 1px solid #c9dfe9;
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.suggestion-item {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fff;
+  text-align: left;
+  padding: 10px 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background: #ecf7fc;
+}
+
+.suggestion-item.active {
+  background: #deeff8;
+}
+
+.suggestion-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.suggestion-meta {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.medicine-helper-text {
+  margin: -4px 0 10px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.medicine-helper-text.ok {
+  color: #1b5e20;
+}
+
+.medicine-helper-text.warning {
+  color: #c62828;
+}
+
+.override-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: #fff3e0;
+  color: #bf360c;
+  text-transform: uppercase;
+}
+
+.muted-row {
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+}
+
+.med-qty {
+  width: 70px;
+}
+
+.med-price {
+  width: 100px;
+}
+
+.medicine-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.medicine-table th,
+.medicine-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f0f0f0;
+  text-align: left;
+}
+
+.medicine-table th {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.btn-remove {
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.btn-remove:hover {
+  background: #ffebee;
+}
+
+.empty-medicines {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 24px;
+  font-size: 0.9rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+/* Summary */
+.summary-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+}
+
+.amount {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.earn-row {
+  color: var(--success);
+}
+
+.earn-points {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.hint {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin: -4px 0 4px;
+  font-style: italic;
+}
+
+.summary-divider {
+  border-top: 2px solid #d4e7ef;
+  margin: 4px 0;
+}
+
+.net-row .net-amount {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+/* Redeem Section */
+.redeem-section {
+  border: 1px solid #ffe2be;
+  border-radius: var(--radius);
+  padding: 14px;
+  background: linear-gradient(150deg, #fffaf2, #fff4e6);
+}
+
+.redeem-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.toggle-label input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+.redeem-input-row {
+  margin-top: 14px;
+}
+
+.redeem-input-row label {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.range-input {
+  width: 100%;
+  accent-color: var(--primary);
+  margin-bottom: 8px;
+}
+
+.redeem-value-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.redeem-num {
+  width: 80px;
+  text-align: center;
+}
+
+.redeem-equals {
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+
+.redeem-row {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.redeem-amount {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* Complete button */
+.btn-complete {
+  font-size: 1rem;
+  padding: 14px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: 11px;
+  border: none;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  text-decoration: none;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), #1a8f98);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--primary-dark), #15747f);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, var(--secondary), #21a493);
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #00796b;
+}
+
+.btn-success {
+  background: linear-gradient(135deg, var(--success), #2f9d6f);
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: #1b5e20;
+}
+
+.btn-ghost {
+  background: #f1f8fb;
+  border: 1px solid #d2e5ed;
+  color: var(--text-primary);
+}
+
+.btn-ghost:hover {
+  background: #f5f5f5;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 0.85rem;
+}
+
+.error-text {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin: 6px 0 0;
+}
+
+/* Complete step */
+.complete-card {
+  text-align: center;
+}
+
+.success-icon {
+  width: 78px;
+  height: 78px;
+  margin: 0 auto 12px;
+  border-radius: 22px;
+  background: #e7f6ee;
+  color: #237e56;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.success-icon svg {
+  width: 42px;
+  height: 42px;
+}
+
+.complete-card h2 {
+  font-size: 1.5rem;
+  margin: 0 0 24px;
+  color: var(--success);
+}
+
+.receipt {
+  background: #f4fafd;
+  border: 1px solid #d4e8f0;
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 0.93rem;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.receipt-row:last-child {
+  border-bottom: none;
+}
+
+.receipt-divider {
+  border-top: 2px solid var(--border);
+  margin: 8px 0;
+}
+
+.complete-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

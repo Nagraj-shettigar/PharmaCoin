@@ -1,12 +1,18 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { Navbar } from './components/navbar/navbar';
+import { SyncService } from './services/sync.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, Navbar],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
 })
-export class App {
-  protected readonly title = signal('HealthPoints');
+export class App implements OnInit {
+  private syncService = inject(SyncService);
+
+  ngOnInit(): void {
+    this.syncService.startAutoSync();
+  }
 }

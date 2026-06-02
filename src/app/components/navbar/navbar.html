@@ -1,0 +1,26 @@
+<nav class="navbar">
+  <a class="brand" routerLink="/">
+    <span class="brand-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <rect x="4" y="4" width="16" height="16" rx="5" fill="currentColor" fill-opacity="0.22" />
+        <path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+      </svg>
+    </span>
+    <span class="brand-name">HealthPoints</span>
+  </a>
+
+  <div class="nav-links">
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+      Dashboard
+    </a>
+    <a routerLink="/billing" routerLinkActive="active" class="btn-new-bill">
+      + New Bill
+    </a>
+    <a routerLink="/admin" routerLinkActive="active">
+      Admin
+      @if (pendingCount > 0) {
+        <span class="badge">{{ pendingCount }}</span>
+      }
+    </a>
+  </div>
+</nav>
