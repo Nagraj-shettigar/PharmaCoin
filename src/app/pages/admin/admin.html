@@ -1,7 +1,43 @@
 <div class="admin-page">
+
+  <!-- Login gate (#15b) -->
+  @if (!adminAuth.authenticated()) {
+    <div class="login-card card">
+      <div class="page-nav">
+        <a routerLink="/" class="back-link">← Dashboard</a>
+      </div>
+      <h2>Admin Login</h2>
+      <p class="desc">Enter the admin password to manage settings.</p>
+
+      <div class="form-group">
+        <label>Password</label>
+        <input
+          type="password"
+          class="input"
+          [ngModel]="passwordInput()"
+          (ngModelChange)="passwordInput.set($event)"
+          (keydown.enter)="login()"
+          placeholder="Admin password"
+          autofocus
+        />
+      </div>
+      @if (loginError()) {
+        <p class="error-text">{{ loginError() }}</p>
+      }
+      <button class="btn btn-primary" (click)="login()">Unlock Admin</button>
+
+      @if (adminAuth.isUsingDefaultPassword()) {
+        <p class="hint default-pwd-hint">Default password is <strong>admin</strong> — change it after logging in (Staff &amp; Security tab).</p>
+      }
+    </div>
+  } @else {
+
   <div class="admin-header">
     <h1>Admin Panel</h1>
-    <a routerLink="/" class="back-link">← Dashboard</a>
+    <div class="admin-header-actions">
+      <a routerLink="/" class="back-link">← Dashboard</a>
+      <button class="btn btn-ghost btn-sm" (click)="logout()">Lock</button>
+    </div>
   </div>
 
   <!-- Tabs -->
@@ -11,8 +47,8 @@
     </button>
     <button class="tab-btn" [class.active]="activeTab() === 'sync'" (click)="activeTab.set('sync')">
       Sync Settings
-      @if (pendingCount > 0) {
-        <span class="tab-badge">{{ pendingCount }}</span>
+      @if (unsyncedCount > 0) {
+        <span class="tab-badge">{{ unsyncedCount }}</span>
       }
     </button>
     <button class="tab-btn" [class.active]="activeTab() === 'medicine'" (click)="activeTab.set('medicine')">
@@ -20,6 +56,9 @@
     </button>
     <button class="tab-btn" [class.active]="activeTab() === 'customers'" (click)="activeTab.set('customers')">
       Customers ({{ customers.length }})
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'staff'" (click)="activeTab.set('staff')">
+      Staff &amp; Security
     </button>
   </div>
 
@@ -129,12 +168,16 @@
           <span class="sync-stat-label">Pending Sync</span>
         </div>
         <div class="sync-stat">
-          <span class="sync-stat-value">{{ stats.totalTransactions - pendingCount }}</span>
+          <span class="sync-stat-value failed-color">{{ failedCount }}</span>
+          <span class="sync-stat-label">Failed</span>
+        </div>
+        <div class="sync-stat">
+          <span class="sync-stat-value synced-color">{{ syncedCount }}</span>
           <span class="sync-stat-label">Synced</span>
         </div>
         @if (syncService.lastSyncAttempt()) {
-          <div class="sync-stat">
-            <span class="sync-stat-value text-sm">{{ formatDate(syncService.lastSyncAttempt()!) }}</span>
+          <div class="sync-stat sync-stat-wide">
+            <span class="sync-stat-value text-sm">{{ formatDateTime(syncService.lastSyncAttempt()!) }}</span>
             <span class="sync-stat-label">Last Attempt</span>
           </div>
         }
@@ -147,7 +190,7 @@
             type="url"
             [ngModel]="syncForm().apiUrl"
             (ngModelChange)="updateSyncField('apiUrl', $event)"
-            placeholder="https://your-backend.com/api"
+            placeholder="http://localhost:4000/api/v1"
             class="input"
           />
           <span class="input-hint">Leave empty to disable sync (offline-only mode)</span>
@@ -197,6 +240,52 @@
           Add a server URL above when your backend is ready.
         </div>
       }
+
+      <div class="sync-activity-block">
+        <div class="sync-activity-header">
+          <h3>Recent Sync Activity</h3>
+          <button
+            class="btn btn-ghost btn-sm"
+            (click)="clearSyncActivity()"
+            [disabled]="syncActivity.length === 0"
+          >
+            Clear Log
+          </button>
+        </div>
+
+        @if (syncActivity.length > 0) {
+          <div class="table-wrap">
+            <table class="table sync-activity-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Bill</th>
+                  <th>Status</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of syncActivity; track item.id) {
+                  <tr>
+                    <td class="row-num">{{ formatDateTime(item.timestamp) }}</td>
+                    <td><strong>{{ item.billNumber }}</strong></td>
+                    <td>
+                      <span class="sync-status-chip" [class.failed]="item.status === 'failed'">
+                        {{ item.status === 'synced' ? 'Synced' : 'Failed' }}
+                      </span>
+                    </td>
+                    <td>{{ item.message }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="info-box compact">
+            No sync activity yet. Run Sync Now to see bill-level status and failure reasons here.
+          </div>
+        }
+      </div>
     </div>
   }
 
@@ -278,7 +367,22 @@
     <div class="tab-content card">
       <h2>All Customers ({{ customers.length }})</h2>
 
-      @if (customers.length > 0) {
+      <!-- Search / filter (#17) -->
+      <div class="customer-search-row">
+        <input
+          type="search"
+          class="input"
+          [ngModel]="customerSearch()"
+          (ngModelChange)="customerSearch.set($event)"
+          placeholder="Search by name or mobile number"
+        />
+        @if (customerSearch()) {
+          <button class="btn btn-ghost btn-sm" (click)="customerSearch.set('')">Clear</button>
+        }
+      </div>
+
+      @if (filteredCustomers().length > 0) {
+        <p class="result-count">Showing {{ filteredCustomers().length }} of {{ customers.length }}</p>
         <div class="table-wrap">
           <table class="table">
             <thead>
@@ -292,7 +396,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (c of customers; track c.id; let i = $index) {
+              @for (c of filteredCustomers(); track c.id; let i = $index) {
                 <tr>
                   <td class="row-num">{{ i + 1 }}</td>
                   <td>
@@ -312,6 +416,8 @@
             </tbody>
           </table>
         </div>
+      } @else if (customers.length > 0) {
+        <div class="info-box compact">No customers match "{{ customerSearch() }}".</div>
       } @else {
         <div class="empty-state">
           <div class="empty-icon">Customers</div>
@@ -320,5 +426,77 @@
         </div>
       }
     </div>
+  }
+
+  <!-- Tab: Staff & Security -->
+  @if (activeTab() === 'staff') {
+    <div class="tab-content card">
+      <h2>Staff</h2>
+      <p class="desc">
+        Staff names appear in the "Billed by" selector on the billing screen, so each bill records who made it.
+      </p>
+
+      <div class="customer-search-row">
+        <input
+          type="text"
+          class="input"
+          [ngModel]="newStaffName()"
+          (ngModelChange)="newStaffName.set($event)"
+          (keydown.enter)="addStaff()"
+          placeholder="Add staff member name"
+        />
+        <button class="btn btn-primary btn-sm" (click)="addStaff()">+ Add</button>
+      </div>
+
+      @if (staff.length > 0) {
+        <ul class="staff-list">
+          @for (name of staff; track name) {
+            <li class="staff-item">
+              <span>{{ name }}</span>
+              <button class="btn btn-ghost btn-sm" (click)="removeStaff(name)">Remove</button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <div class="info-box compact">No staff added yet. Billing will fall back to a free-text "Billed by" field.</div>
+      }
+
+      <hr class="section-divider" />
+
+      <h2>Admin Password</h2>
+      <p class="desc">Change the password used to unlock this Admin area.</p>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Current Password</label>
+          <input
+            type="password"
+            class="input"
+            [ngModel]="currentPwd()"
+            (ngModelChange)="currentPwd.set($event)"
+            placeholder="Current password"
+          />
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input
+            type="password"
+            class="input"
+            [ngModel]="newPwd()"
+            (ngModelChange)="newPwd.set($event)"
+            placeholder="New password"
+          />
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" (click)="changePassword()">Update Password</button>
+        @if (pwdMessage()) {
+          <span class="saved-msg">{{ pwdMessage() }}</span>
+        }
+      </div>
+    </div>
+  }
+
   }
 </div>
