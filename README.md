@@ -1,6 +1,63 @@
 # HealthPoints
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.1.
+Offline-first pharmacy loyalty & billing app. **Angular** SPA (frontend) + **Express/TypeScript + Postgres** API (backend), designed to sync local-first data to a backend when available.
+
+## Monorepo layout
+
+```
+.
+├── src/                 # Angular frontend (SPA)
+├── backend/             # Express API (TypeScript, Postgres, Zod)
+│   ├── migrations/      # SQL migrations (001_*, 002_*)
+│   └── src/
+├── .env.example         # Env-var reference for the whole repo
+└── README.md
+```
+
+## Quickstart (local dev)
+
+```bash
+# 1. Frontend
+npm install
+npm start                 # ng serve → http://localhost:4200
+
+# 2. Backend (separate terminal)
+npm run backend:install   # installs backend deps
+cp backend/.env.example backend/.env   # then edit DATABASE_URL
+npm run backend:migrate   # apply SQL migrations
+npm run backend:dev       # tsx watch → http://localhost:4000
+```
+
+Root convenience scripts: `backend:install`, `backend:dev`, `backend:build`, `backend:migrate`, `build:all`.
+
+## Environments
+
+Two environments are driven by git branches: **`develop` → dev**, **`main` → prod**.
+
+| Concern | Dev | Prod |
+|---|---|---|
+| Frontend build | `ng build -c development` | `ng build -c production` |
+| Frontend host | Cloudflare Pages (preview) | Cloudflare Pages (production) |
+| API base URL | from `src/environments/environment.ts` | from `src/environments/environment.prod.ts` |
+| Backend | Cloudflare Worker `…-dev` | Cloudflare Worker (prod) |
+| Database | Neon branch `dev` | Neon branch `main` |
+
+### Environment variables
+
+| Variable | Scope | Where it lives | Notes |
+|---|---|---|---|
+| `DATABASE_URL` | Backend | `backend/.env` (local) · Worker secret (deployed) | Postgres / Neon pooled connection string |
+| `CORS_ORIGIN` | Backend | `backend/.env` · Worker var | Allowed frontend origin(s) |
+| `PORT` | Backend (local only) | `backend/.env` | Local Express port (not used on Workers) |
+| API base URL | Frontend | `src/environments/environment*.ts` | Baked at build time; Admin can override at runtime |
+
+> The frontend does **not** read `.env` at runtime — its API URL is compiled in from `environment*.ts`. See `.env.example` for the full reference.
+
+Full hosting plan and rollout phases live in **[DEPLOYMENT.md](DEPLOYMENT.md)**.
+
+---
+
+## Angular CLI reference
 
 ## Development server
 

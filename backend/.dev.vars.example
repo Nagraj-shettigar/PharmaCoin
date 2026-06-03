@@ -1,0 +1,4 @@
+# Local `wrangler dev` environment (copy to .dev.vars — gitignored).
+# Use your Neon DEV branch pooled connection string.
+DATABASE_URL=postgresql://USER:PASSWORD@ep-xxxx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+CORS_ORIGIN=http://localhost:4200

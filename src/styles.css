@@ -11,34 +11,41 @@
 }
 
 :root {
-  --primary: #0077a6;
-  --primary-dark: #005a86;
-  --primary-light: #bfe7f5;
-  --secondary: #0d9488;
-  --accent: #f48c2f;
-  --success: #1f8a5b;
-  --danger: #c62828;
-  --text-primary: #14354a;
-  --text-secondary: #4f6f7f;
-  --bg: #edf5f8;
+  --primary: #1f7a45;
+  --primary-dark: #155e34;
+  --primary-light: #cfe9d7;
+  --secondary: #168a6f;
+  --accent: #c98a3c;
+  --success: #1f7a4a;
+  --danger: #b64141;
+  --text-primary: #173628;
+  --text-secondary: #5c7065;
+  --bg: #eef5ef;
   --card-bg: #ffffff;
-  --border: #d6e6ee;
-  --shadow: 0 12px 32px rgba(13, 55, 79, 0.08);
-  --shadow-soft: 0 8px 18px rgba(13, 55, 79, 0.07);
+  --border: #d3e3d8;
+  --shadow: 0 12px 30px rgba(24, 61, 43, 0.1);
+  --shadow-soft: 0 8px 18px rgba(24, 61, 43, 0.08);
   --radius: 14px;
   --radius-sm: 10px;
   --title-font: 'Source Serif 4', serif;
   --body-font: 'Manrope', sans-serif;
+  --fs-h1: clamp(1.95rem, 2.2vw, 2.45rem);
+  --fs-h2: clamp(1.45rem, 1.15rem + 0.9vw, 1.8rem);
+  --fs-h3: clamp(1.08rem, 1.05vw, 1.24rem);
+  --fs-h4: 1rem;
+  --fs-body: 0.96rem;
+  --fs-caption: 0.82rem;
 }
 
 body {
   font-family: var(--body-font);
   background:
-    radial-gradient(1200px 500px at -10% -10%, rgba(13, 148, 136, 0.11), transparent 65%),
-    radial-gradient(900px 500px at 110% -20%, rgba(0, 119, 166, 0.13), transparent 60%),
-    linear-gradient(180deg, #f5fbfe 0%, var(--bg) 38%, #eff7fa 100%);
+    radial-gradient(1200px 520px at -10% -10%, rgba(47, 163, 137, 0.1), transparent 65%),
+    radial-gradient(900px 520px at 110% -20%, rgba(47, 140, 90, 0.13), transparent 60%),
+    linear-gradient(180deg, #f7fcf8 0%, var(--bg) 42%, #eef6f0 100%);
   color: var(--text-primary);
-  line-height: 1.5;
+  line-height: 1.55;
+  font-size: var(--fs-body);
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
 }
@@ -74,4 +81,81 @@ h1, h2, h3, h4 {
 h1, h2 {
   font-family: var(--title-font);
   letter-spacing: 0.2px;
+}
+
+h1 {
+  font-size: var(--fs-h1);
+  font-weight: 700;
+}
+
+h2 {
+  font-size: var(--fs-h2);
+  font-weight: 700;
+}
+
+h3 {
+  font-size: var(--fs-h3);
+  font-weight: 800;
+}
+
+h4 {
+  font-size: var(--fs-h4);
+  font-weight: 700;
+}
+
+p {
+  line-height: 1.6;
+}
+
+.btn-context-action {
+  border-radius: 999px;
+  padding: 11px 18px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+  border: 1px solid rgba(47, 140, 90, 0.22);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(24, 61, 43, 0.18);
+}
+
+.btn-context-action:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--primary-dark), #11785f);
+}
+
+.btn-context-action-compact {
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  box-shadow: 0 4px 10px rgba(24, 61, 43, 0.16);
+}
+
+/* ---- Print: show only the element marked .print-area ---- */
+@media print {
+  html,
+  body {
+    height: auto;
+    margin: 0;
+    background: #fff;
+  }
+
+  /* Collapse the app's in-flow height to zero so the hidden chrome doesn't
+     generate extra blank pages. The absolutely-positioned .print-area below
+     escapes this (its containing block is the page), so the receipt prints
+     on a single page. */
+  app-root {
+    display: block;
+    height: 0;
+    overflow: hidden;
+  }
+
+  .print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .no-print {
+    display: none !important;
+  }
 }

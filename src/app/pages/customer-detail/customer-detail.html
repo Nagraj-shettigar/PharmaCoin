@@ -1,104 +1,212 @@
 @if (customer(); as c) {
 <div class="customer-detail">
-  <!-- Back nav -->
+  <!-- Back nav / breadcrumb -->
   <div class="page-nav">
     <a routerLink="/" class="back-link">← Dashboard</a>
+    <span class="crumb-sep">/</span>
+    <span class="crumb-current">Customer Home</span>
   </div>
-  @if (true) {
-    <!-- Customer Header -->
-    <div class="customer-header card">
-      <div class="customer-header-left">
-        <div class="customer-avatar-lg">{{ c.name.charAt(0).toUpperCase() }}</div>
+
+  <!-- Customer Header -->
+  <div class="customer-header card">
+    <div class="customer-header-left">
+      <div class="customer-avatar-lg">{{ c.name.charAt(0).toUpperCase() }}</div>
+
+      @if (!editing()) {
         <div>
-          <h1>{{ c.name }}</h1>
+          <h1>
+            {{ c.name }}
+            <button class="icon-edit" (click)="startEdit()" title="Edit profile" aria-label="Edit profile">✎</button>
+          </h1>
           <p class="mobile">Mobile: {{ c.mobile }}</p>
           <p class="member-since">Member since {{ memberSince() }}</p>
         </div>
-      </div>
-      <div class="header-actions">
-        <div class="points-big-chip">
-          <div class="points-big-value">{{ c.pointsBalance }}</div>
-          <div class="points-big-label">Points Available</div>
-          <div class="points-rupee-value">≈ ₹{{ pointsValue | number: '1.2-2' }}</div>
-        </div>
-        <button class="btn btn-primary" (click)="startNewBill()">+ New Bill</button>
-      </div>
-    </div>
-
-    <!-- Stats Row -->
-    <div class="stats-row">
-      <div class="stat-mini-card">
-        <div class="stat-mini-value">{{ transactions().length }}</div>
-        <div class="stat-mini-label">Total Visits</div>
-      </div>
-      <div class="stat-mini-card">
-        <div class="stat-mini-value">₹{{ totalSpent | number: '1.0-0' }}</div>
-        <div class="stat-mini-label">Total Spent</div>
-      </div>
-      <div class="stat-mini-card">
-        <div class="stat-mini-value earn-text">{{ totalPointsEarned }}</div>
-        <div class="stat-mini-label">Points Earned</div>
-      </div>
-      <div class="stat-mini-card">
-        <div class="stat-mini-value redeem-text">{{ totalPointsRedeemed }}</div>
-        <div class="stat-mini-label">Points Redeemed</div>
-      </div>
-    </div>
-
-    <!-- Transaction History -->
-    <div class="history-section">
-      <h2>Purchase History</h2>
-
-      @if (transactions().length > 0) {
-        <div class="table-wrap">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Date</th>
-                <th>Bill Amount</th>
-                <th>Points Earned</th>
-                <th>Points Redeemed</th>
-                <th>Discount</th>
-                <th>Net Paid</th>
-                <th>Medicines</th>
-                <th>Sync</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (tx of transactions(); track tx.id; let i = $index) {
-                <tr>
-                  <td class="row-num">{{ i + 1 }}</td>
-                  <td>{{ formatDate(tx.date) }}</td>
-                  <td>₹{{ tx.billAmount | number: '1.2-2' }}</td>
-                  <td class="earn-text">+{{ tx.pointsEarned }} pts</td>
-                  <td class="redeem-text">{{ tx.pointsRedeemed > 0 ? '-' + tx.pointsRedeemed + ' pts' : '—' }}</td>
-                  <td class="redeem-text">{{ tx.redeemedValue > 0 ? '₹' + (tx.redeemedValue | number: '1.2-2') : '—' }}</td>
-                  <td><strong>₹{{ tx.netAmount | number: '1.2-2' }}</strong></td>
-                  <td>
-                    @if (tx.medicines.length > 0) {
-                      <span class="medicine-pill">{{ tx.medicines.length }} item(s)</span>
-                    } @else {
-                      <span class="text-muted">—</span>
-                    }
-                  </td>
-                  <td>
-                    <span class="sync-badge sync-{{ tx.syncStatus }}">{{ tx.syncStatus }}</span>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
       } @else {
-        <div class="empty-state">
-          <div class="empty-icon">History</div>
-          <p>No transactions yet for this customer.</p>
-          <button class="btn btn-primary" (click)="startNewBill()">Record First Bill</button>
+        <div class="profile-edit">
+          <div class="form-group">
+            <label>Name</label>
+            <input class="input" [ngModel]="editName()" (ngModelChange)="editName.set($event)" placeholder="Customer name" />
+          </div>
+          <div class="form-group">
+            <label>Mobile (identity)</label>
+            <input
+              class="input"
+              [ngModel]="editMobile()"
+              (ngModelChange)="editMobile.set($event)"
+              maxlength="10"
+              placeholder="10-digit mobile"
+            />
+          </div>
+
+          @if (pendingPhoneChange()) {
+            <div class="phone-confirm">
+              <p>⚠ You're changing the mobile number — this is the customer's identity. Continue?</p>
+              <div class="phone-confirm-actions">
+                <button class="btn btn-primary btn-sm" (click)="confirmPhoneChange()">Yes, change number</button>
+                <button class="btn btn-ghost btn-sm" (click)="cancelPhoneChange()">Keep editing</button>
+              </div>
+            </div>
+          }
+
+          @if (profileError()) {
+            <p class="error-text">{{ profileError() }}</p>
+          }
+
+          @if (!pendingPhoneChange()) {
+            <div class="profile-edit-actions">
+              <button class="btn btn-success btn-sm" (click)="saveProfile()">Save</button>
+              <button class="btn btn-ghost btn-sm" (click)="cancelEdit()">Cancel</button>
+            </div>
+          }
         </div>
       }
     </div>
-  }
+
+    <div class="header-actions">
+      <div class="points-big-chip">
+        <div class="points-big-value">{{ c.pointsBalance }}</div>
+        <div class="points-big-label">Points Available</div>
+        <div class="points-rupee-value">≈ ₹{{ pointsValue | number: '1.2-2' }}</div>
+      </div>
+      <button class="btn btn-context-action" (click)="startNewBill()">+ New Bill</button>
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-mini-card">
+      <div class="stat-mini-value">{{ transactions().length }}</div>
+      <div class="stat-mini-label">Total Visits</div>
+    </div>
+    <div class="stat-mini-card">
+      <div class="stat-mini-value">₹{{ totalSpent | number: '1.0-0' }}</div>
+      <div class="stat-mini-label">Total Spent</div>
+    </div>
+    <div class="stat-mini-card">
+      <div class="stat-mini-value earn-text">{{ totalPointsEarned }}</div>
+      <div class="stat-mini-label">Points Earned</div>
+    </div>
+    <div class="stat-mini-card">
+      <div class="stat-mini-value redeem-text">{{ totalPointsRedeemed }}</div>
+      <div class="stat-mini-label">Points Redeemed</div>
+    </div>
+  </div>
+
+  <!-- Bills Accordion (#18, #8) -->
+  <section class="accordion" [class.open]="billsOpen()">
+    <button type="button" class="accordion-header" (click)="toggleBills()" [attr.aria-expanded]="billsOpen()">
+      <div class="accordion-title">
+        <span class="accordion-caret" aria-hidden="true">▸</span>
+        <span>Bills</span>
+        <span class="accordion-count">{{ transactions().length }}</span>
+      </div>
+      <span class="accordion-hint">Tap a bill to view its medicines</span>
+    </button>
+
+    @if (billsOpen()) {
+      @if (transactions().length > 0) {
+        <ul class="accordion-list">
+          @for (tx of transactions(); track tx.id) {
+            <li class="accordion-item-group">
+              <div class="accordion-item">
+                <button type="button" class="accordion-item-main as-button" (click)="toggleBillExpanded(tx.id)">
+                  <span class="accordion-caret sm" [class.open]="expandedBillId() === tx.id" aria-hidden="true">▸</span>
+                  <span>
+                    <strong class="accordion-item-title">{{ tx.billNumber }}</strong>
+                    <span class="accordion-item-meta">
+                      {{ formatShortDate(tx.date) }}
+                      @if (tx.medicines.length > 0) {
+                        • {{ tx.medicines.length }} item{{ tx.medicines.length === 1 ? '' : 's' }}
+                      } @else {
+                        • amount only
+                      }
+                      @if (tx.billedBy) {
+                        • by {{ tx.billedBy }}
+                      }
+                    </span>
+                  </span>
+                </button>
+                <div class="accordion-item-side">
+                  <span class="accordion-item-amount">₹{{ tx.billAmount | number: '1.2-2' }}</span>
+                  <span class="sync-badge sync-{{ tx.syncStatus }}">{{ tx.syncStatus }}</span>
+                </div>
+              </div>
+
+              @if (expandedBillId() === tx.id) {
+                <div class="bill-expand">
+                  @if (tx.medicines.length > 0) {
+                    <table class="mini-med-table">
+                      <thead>
+                        <tr><th>Item</th><th>MRP</th><th>Qty</th><th>Price</th><th>Total</th></tr>
+                      </thead>
+                      <tbody>
+                        @for (med of tx.medicines; track $index) {
+                          <tr>
+                            <td>{{ med.name }}</td>
+                            <td>{{ med.mrp != null ? ('₹' + (med.mrp | number: '1.2-2')) : '—' }}</td>
+                            <td>{{ med.quantity }}</td>
+                            <td>₹{{ med.price | number: '1.2-2' }}</td>
+                            <td>₹{{ (med.quantity * med.price) | number: '1.2-2' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  } @else {
+                    <p class="bill-expand-empty">No itemised medicines — this bill recorded a total only.</p>
+                  }
+                  <div class="bill-expand-totals">
+                    <span>Points earned <strong class="earn-text">+{{ tx.pointsEarned }}</strong></span>
+                    @if (tx.pointsRedeemed > 0) {
+                      <span>Redeemed <strong class="redeem-text">−{{ tx.pointsRedeemed }} pts</strong></span>
+                    }
+                    <span>Net <strong>₹{{ tx.netAmount | number: '1.2-2' }}</strong></span>
+                  </div>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      } @else {
+        <div class="accordion-empty">
+          No transactions yet for this customer.
+          <button class="btn btn-primary btn-sm" (click)="startNewBill()">Record First Bill</button>
+        </div>
+      }
+    }
+  </section>
+
+  <!-- Medicines Accordion (#18) -->
+  <section class="accordion" [class.open]="medsOpen()">
+    <button type="button" class="accordion-header" (click)="toggleMeds()" [attr.aria-expanded]="medsOpen()">
+      <div class="accordion-title">
+        <span class="accordion-caret" aria-hidden="true">▸</span>
+        <span>Medicines Purchased</span>
+        <span class="accordion-count">{{ distinctMedicines().length }}</span>
+      </div>
+      <span class="accordion-hint">Distinct items across all bills</span>
+    </button>
+
+    @if (medsOpen()) {
+      @if (distinctMedicines().length > 0) {
+        <ul class="accordion-list">
+          @for (med of distinctMedicines(); track $index) {
+            <li class="accordion-item">
+              <div class="accordion-item-main">
+                <strong class="accordion-item-title">{{ med.name }}</strong>
+                @if (med.packSize || med.manufacturer) {
+                  <span class="accordion-item-meta">
+                    {{ med.packSize ?? '' }}{{ med.packSize && med.manufacturer ? ' • ' : '' }}{{ med.manufacturer ?? '' }}
+                  </span>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      } @else {
+        <div class="accordion-empty">No itemised medicines recorded yet.</div>
+      }
+    }
+  </section>
 </div>
 } @else {
   <div class="not-found">

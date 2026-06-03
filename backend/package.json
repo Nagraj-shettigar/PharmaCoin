@@ -1,0 +1,34 @@
+{
+  "name": "healthpoints-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HealthPoints backend API (Hono on Cloudflare Workers)",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy:dev": "wrangler deploy --env dev",
+    "deploy:prod": "wrangler deploy --env production",
+    "check": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc --noEmit -p tsconfig.json",
+    "cf:dry": "wrangler deploy --dry-run --outdir .wrangler-dry --env production",
+    "migrate": "tsx src/db/migrate.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "hono": "^4.6.14",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "@types/node": "^22.7.4",
+    "@types/pg": "^8.20.0",
+    "dotenv": "^16.4.5",
+    "pg": "^8.12.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3",
+    "wrangler": "^4.86.0"
+  }
+}

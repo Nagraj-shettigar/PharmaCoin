@@ -12,6 +12,7 @@ export interface MedicineItem {
 
 export interface Transaction {
   id: string;
+  billNumber: string;
   customerId: string;
   customerName: string;
   customerMobile: string;
@@ -22,5 +23,7 @@ export interface Transaction {
   redeemedValue: number;
   netAmount: number;
   date: string;
+  /** Name of the staff member who created the bill (free-text / selected). */
+  billedBy?: string;
   syncStatus: 'pending' | 'synced' | 'failed';
 }

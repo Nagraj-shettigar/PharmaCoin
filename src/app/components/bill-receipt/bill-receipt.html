@@ -1,0 +1,111 @@
+<div class="bill-doc">
+  <header class="bill-doc-head">
+    <div class="bill-shop">
+      <h3>{{ shopName }}</h3>
+      <span class="bill-shop-tag">Tax Invoice / Bill of Supply</span>
+    </div>
+    <div class="bill-no-block">
+      <span class="bill-no-label">Bill No.</span>
+      <strong class="bill-no-value">{{ transaction.billNumber }}</strong>
+    </div>
+  </header>
+
+  <div class="bill-meta-grid">
+    <div>
+      <span class="bill-meta-label">Customer</span>
+      <strong>{{ transaction.customerName }}</strong>
+    </div>
+    <div>
+      <span class="bill-meta-label">Mobile</span>
+      <span>{{ transaction.customerMobile }}</span>
+    </div>
+    <div>
+      <span class="bill-meta-label">Date</span>
+      <span>{{ formatDateTime(transaction.date) }}</span>
+    </div>
+    @if (transaction.billedBy) {
+      <div>
+        <span class="bill-meta-label">Billed by</span>
+        <span>{{ transaction.billedBy }}</span>
+      </div>
+    }
+  </div>
+
+  @if (transaction.medicines.length > 0) {
+    <table class="bill-items">
+      <colgroup>
+        <col class="col-ix" />
+        <col class="col-item" />
+        <col class="col-num" />
+        <col class="col-qty" />
+        <col class="col-num" />
+        <col class="col-num" />
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="ix">#</th>
+          <th>Item</th>
+          <th class="num">MRP</th>
+          <th class="num">Qty</th>
+          <th class="num">Price</th>
+          <th class="num">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (med of transaction.medicines; track $index) {
+          <tr>
+            <td class="ix">{{ $index + 1 }}</td>
+            <td>
+              <div class="bill-item-name">{{ med.name }}</div>
+              @if (med.packSize || med.manufacturer) {
+                <small class="bill-item-sub">
+                  {{ med.packSize ?? '' }}{{ med.packSize && med.manufacturer ? ' • ' : '' }}{{ med.manufacturer ?? '' }}
+                </small>
+              }
+            </td>
+            <td class="num">{{ med.mrp != null ? ('₹' + (med.mrp | number: '1.2-2')) : '—' }}</td>
+            <td class="num">{{ med.quantity }}</td>
+            <td class="num">₹{{ med.price | number: '1.2-2' }}</td>
+            <td class="num"><strong>₹{{ (med.quantity * med.price) | number: '1.2-2' }}</strong></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  } @else {
+    <p class="bill-no-items">No itemised medicines recorded for this bill.</p>
+  }
+
+  <div class="bill-totals">
+    <div class="bill-total-row">
+      <span>Bill Amount</span>
+      <span>₹{{ transaction.billAmount | number: '1.2-2' }}</span>
+    </div>
+    @if (transaction.pointsRedeemed > 0) {
+      <div class="bill-total-row discount">
+        <span>Points Redeemed ({{ transaction.pointsRedeemed }} pts)</span>
+        <span>−₹{{ transaction.redeemedValue | number: '1.2-2' }}</span>
+      </div>
+    }
+    <div class="bill-total-row grand">
+      <span>Net Payable</span>
+      <span>₹{{ transaction.netAmount | number: '1.2-2' }}</span>
+    </div>
+  </div>
+
+  <div class="bill-points">
+    <div class="bill-point-chip earn">
+      <span>Points Earned</span>
+      <strong>+{{ transaction.pointsEarned }}</strong>
+    </div>
+    @if (newBalance != null) {
+      <div class="bill-point-chip balance">
+        <span>Points Balance</span>
+        <strong>{{ newBalance }}</strong>
+      </div>
+    }
+  </div>
+
+  <footer class="bill-doc-foot">
+    Thank you for shopping with {{ shopName }}. Get well soon!
+  </footer>
+</div>

@@ -3,7 +3,7 @@
   <div class="hero">
     <div class="hero-content">
       <h1>Welcome to <span>HealthPoints</span></h1>
-      <p class="subtitle">Enter customer mobile number to start billing</p>
+      <p class="subtitle">Enter a mobile number to open the customer's profile or start a new bill</p>
 
       <div class="search-box">
         <div class="search-input-wrap">
@@ -23,7 +23,7 @@
             class="search-input"
             autofocus
           />
-          <button class="btn-search" (click)="onSearch()">Start Billing →</button>
+          <button class="btn-search" (click)="onSearch()">Find Customer →</button>
         </div>
         @if (searchError()) {
           <p class="search-error">{{ searchError() }}</p>
@@ -32,7 +32,48 @@
     </div>
   </div>
 
-  <!-- Stats -->
+  <div class="performance-card">
+    <div class="range-filter-row">
+      @for (option of rangeOptions; track option.value) {
+        <button
+          type="button"
+          class="range-chip"
+          [class.active]="selectedRange() === option.value"
+          (click)="setRange(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      }
+    </div>
+
+    @if (selectedRange() === 'custom') {
+      <div class="custom-range-grid">
+        <label class="date-field">
+          <span>Start Date</span>
+          <input
+            type="date"
+            [ngModel]="customStartDate()"
+            (ngModelChange)="customStartDate.set($event)"
+            class="date-input"
+          />
+        </label>
+        <label class="date-field">
+          <span>End Date</span>
+          <input
+            type="date"
+            [ngModel]="customEndDate()"
+            (ngModelChange)="customEndDate.set($event)"
+            class="date-input"
+          />
+        </label>
+      </div>
+    }
+
+    @if (!rangeState().valid) {
+      <p class="range-error">{{ rangeState().message }}</p>
+    }
+  </div>
+
   <div class="stats-row">
     <div class="stat-card">
       <span class="stat-icon" aria-hidden="true">
@@ -54,7 +95,7 @@
         </svg>
       </span>
       <div>
-        <div class="stat-value">{{ stats.totalTransactions }}</div>
+        <div class="stat-value">{{ stats().totalTransactions }}</div>
         <div class="stat-label">Total Bills</div>
       </div>
     </div>
@@ -65,7 +106,7 @@
         </svg>
       </span>
       <div>
-        <div class="stat-value">{{ stats.totalPointsIssued }}</div>
+        <div class="stat-value">{{ stats().totalPointsIssued }}</div>
         <div class="stat-label">Points Issued</div>
       </div>
     </div>
@@ -77,20 +118,41 @@
         </svg>
       </span>
       <div>
-        <div class="stat-value">₹{{ stats.totalBilling | number: '1.0-0' }}</div>
+        <div class="stat-value">₹{{ stats().totalBilling | number: '1.0-0' }}</div>
         <div class="stat-label">Total Billing</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card-accent">
+      <span class="stat-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M6 7.5h12M8.5 4.8h7M8.5 19.2h7M6 16.5h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M9.2 12h5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <div>
+        <div class="stat-value">{{ stats().totalPointsRedeemed }}</div>
+        <div class="stat-label">Points Redeemed</div>
       </div>
     </div>
   </div>
 
   <!-- Recent Transactions -->
-  @if (recentTransactions.length > 0) {
+  @if (recentTransactions().length > 0) {
     <div class="recent-section">
-      <h2>Recent Transactions</h2>
+      <div class="recent-header">
+        <div>
+          <h2>Transactions</h2>
+          <p>{{ rangeState().label }} activity</p>
+        </div>
+      </div>
+      @if (syncError()) {
+        <p class="sync-error-note">{{ syncError() }}</p>
+      }
       <div class="table-wrap">
         <table class="table">
           <thead>
             <tr>
+              <th>Bill No.</th>
               <th>Customer</th>
               <th>Mobile</th>
               <th>Date</th>
@@ -99,11 +161,13 @@
               <th>Points Used</th>
               <th>Net Amt</th>
               <th>Sync</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            @for (tx of recentTransactions; track tx.id) {
+            @for (tx of recentTransactions(); track tx.id) {
               <tr (click)="navigateToCustomer(tx.customerId)" class="clickable-row">
+                <td><strong>{{ tx.billNumber }}</strong></td>
                 <td><strong>{{ tx.customerName }}</strong></td>
                 <td>{{ tx.customerMobile }}</td>
                 <td>{{ formatDate(tx.date) }}</td>
@@ -111,8 +175,43 @@
                 <td class="points-earned">+{{ tx.pointsEarned }} pts</td>
                 <td class="points-used">{{ tx.pointsRedeemed > 0 ? '-' + tx.pointsRedeemed + ' pts' : '—' }}</td>
                 <td><strong>₹{{ tx.netAmount | number: '1.2-2' }}</strong></td>
-                <td>
+                <td class="sync-cell">
                   <span class="sync-badge sync-{{ tx.syncStatus }}">{{ tx.syncStatus }}</span>
+
+                  @if (tx.syncStatus === 'pending' || tx.syncStatus === 'failed') {
+                    <button
+                      type="button"
+                      class="manual-sync-btn"
+                      [disabled]="isManualSyncing(tx.id)"
+                      (click)="manualSync(tx, $event)"
+                      title="Manual sync"
+                      aria-label="Manual sync"
+                    >
+                      @if (isManualSyncing(tx.id)) {
+                        <span class="manual-sync-label">Syncing...</span>
+                      } @else {
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path d="M20 12a8 8 0 1 1-2.34-5.66" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+                          <path d="M20 4.7v3.8h-3.8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      }
+                    </button>
+                  }
+                </td>
+                <td class="print-cell">
+                  <button
+                    type="button"
+                    class="row-print-btn"
+                    (click)="printBill(tx, $event)"
+                    title="Print bill"
+                    aria-label="Print bill"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M7 8V4h10v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                      <rect x="5" y="8" width="14" height="8" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                      <path d="M7 14h10v6H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
                 </td>
               </tr>
             }
@@ -128,7 +227,14 @@
           <path d="M9.2 9h5.6M9.2 12h5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
       </div>
-      <p>No transactions yet. Start your first bill above.</p>
+      <p>No transactions found for {{ rangeState().label.toLowerCase() }}.</p>
+    </div>
+  }
+
+  <!-- Hidden print surface for per-row bill printing -->
+  @if (printTransaction(); as tx) {
+    <div class="print-area">
+      <app-bill-receipt [transaction]="tx" />
     </div>
   }
 </div>

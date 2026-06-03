@@ -1,0 +1,23 @@
+name = "healthpoints-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# DATABASE_URL is a SECRET — never put it here. Set it per environment with:
+#   wrangler secret put DATABASE_URL --env dev
+#   wrangler secret put DATABASE_URL --env production
+# For local `wrangler dev`, put it in backend/.dev.vars (gitignored).
+
+# CORS_ORIGIN may be a comma-separated allow-list of frontend origins.
+
+[env.dev]
+name = "healthpoints-api-dev"
+
+[env.dev.vars]
+CORS_ORIGIN = "http://localhost:4200,https://develop.healthpoints.pages.dev"
+
+[env.production]
+name = "healthpoints-api"
+
+[env.production.vars]
+CORS_ORIGIN = "https://healthpoints.pages.dev"

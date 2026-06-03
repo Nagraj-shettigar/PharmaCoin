@@ -3,6 +3,9 @@
   <!-- STEP: LOOKUP -->
   @if (step() === 'lookup') {
     <div class="step-card">
+      <div class="page-nav no-print">
+        <a routerLink="/" class="back-link">← Dashboard</a>
+      </div>
       <div class="step-header">
         <h2>Customer Lookup</h2>
         <p>Enter the customer's mobile number to search or register</p>
@@ -36,6 +39,9 @@
             <div>
               <h3>{{ foundCustomer()!.name }}</h3>
               <span class="mobile-label">Mobile: {{ foundCustomer()!.mobile }}</span>
+              @if (latestCustomerTransaction(); as lastTx) {
+                <span class="history-preview">Last bill: {{ lastTx.billNumber }} • {{ formatShortDate(lastTx.date) }}</span>
+              }
             </div>
             <div class="points-chip">
               <span class="points-value">{{ foundCustomer()!.pointsBalance }}</span>
@@ -43,8 +49,11 @@
             </div>
           </div>
           <div class="customer-found-actions">
-            <button class="btn btn-primary btn-full" (click)="onProceedToBilling()">
-              Proceed to Billing →
+            <button class="btn btn-context-action btn-full" (click)="onProceedToBilling()">
+              Start Billing →
+            </button>
+            <button class="btn btn-ghost btn-full" (click)="viewCustomerHistory()">
+              Open Customer Home ({{ existingCustomerBillCount() }} {{ existingCustomerBillCount() === 1 ? 'bill' : 'bills' }})
             </button>
           </div>
         </div>
@@ -76,7 +85,7 @@
 
   <!-- STEP: BILLING -->
   @if (step() === 'billing') {
-    <div class="billing-step">
+    <div class="billing-step no-print">
 
       <!-- Customer Info Bar -->
       <div class="customer-bar">
@@ -87,11 +96,38 @@
             <span class="mobile-label">Mobile: {{ foundCustomer()!.mobile }}</span>
           </div>
         </div>
-        <div class="points-chip">
-          <span class="points-value">{{ foundCustomer()!.pointsBalance }}</span>
-          <span class="points-label">pts</span>
+
+        <div class="customer-bar-right">
+          <!-- Billed by (#20) -->
+          <div class="billed-by">
+            <label>Billed by</label>
+            @if (staffList().length > 0) {
+              <select
+                class="input input-sm billed-by-select"
+                [ngModel]="staffService.activeStaff()"
+                (ngModelChange)="staffService.setActiveStaff($event)"
+              >
+                @for (name of staffList(); track name) {
+                  <option [value]="name">{{ name }}</option>
+                }
+              </select>
+            } @else {
+              <input
+                type="text"
+                class="input input-sm billed-by-input"
+                [ngModel]="billedByInput()"
+                (ngModelChange)="billedByInput.set($event)"
+                placeholder="Staff name"
+              />
+            }
+          </div>
+
+          <div class="points-chip">
+            <span class="points-value">{{ foundCustomer()!.pointsBalance }}</span>
+            <span class="points-label">pts</span>
+          </div>
+          <button class="btn btn-ghost btn-sm" (click)="changeCustomer()">Change Customer</button>
         </div>
-        <button class="btn btn-ghost btn-sm" (click)="step.set('lookup')">← Change</button>
       </div>
 
       <div class="billing-body">
@@ -99,175 +135,173 @@
         <div class="bill-entry-card card">
           <div class="card-header">
             <h3>Bill Details</h3>
-            <div class="mode-toggle">
-              <button
-                class="mode-btn"
-                [class.active]="billMode() === 'simple'"
-                (click)="setBillMode('simple')"
-              >Simple</button>
-              <button
-                class="mode-btn"
-                [class.active]="billMode() === 'detailed'"
-                (click)="setBillMode('detailed')"
-              >Detailed</button>
-            </div>
+            <span class="mrp-price-legend">
+              <strong>MRP</strong> = printed max price (reference) &nbsp;·&nbsp; <strong>Price</strong> = amount charged
+            </span>
           </div>
 
-          <!-- Simple Mode -->
-          @if (billMode() === 'simple') {
-            <div class="form-group">
-              <label>Total Bill Amount (₹)</label>
+          <div class="medicine-section">
+            <!-- Add Medicine Row -->
+            <div class="add-medicine-row">
+              <div class="medicine-search-wrap med-name">
+                <input
+                  type="text"
+                  [ngModel]="newMedicineName()"
+                  (ngModelChange)="onMedicineNameChange($event)"
+                  (keydown)="onMedicineKeydown($event)"
+                  (focus)="onMedicineInputFocus()"
+                  (blur)="onMedicineInputBlur()"
+                  placeholder="Search or type medicine name"
+                  class="input"
+                  autocomplete="off"
+                />
+
+                @if (showMedicineSuggestions() && medicineSuggestions().length > 0) {
+                  <div class="suggestions-dropdown">
+                    @for (item of medicineSuggestions(); track item.id) {
+                      <button
+                        type="button"
+                        class="suggestion-item"
+                        [class.active]="activeSuggestionIndex() === $index"
+                        (mousedown)="$event.preventDefault()"
+                        (mouseenter)="onSuggestionHover($index)"
+                        (click)="selectMedicineSuggestion(item)"
+                      >
+                        <span class="suggestion-title">{{ item.name }}</span>
+                        <span class="suggestion-meta">
+                          @if (item.packSize) {
+                            {{ item.packSize }}
+                          }
+                          @if (item.manufacturer) {
+                            {{ item.packSize ? ' | ' : '' }}{{ item.manufacturer }}
+                          }
+                          @if (item.mrp != null) {
+                            | MRP ₹{{ item.mrp | number: '1.2-2' }}
+                          } @else {
+                            | MRP not provided
+                          }
+                          | {{ item.source === 'remote' ? 'online' : 'offline' }}
+                        </span>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
               <input
                 type="number"
-                [ngModel]="simpleBillAmount()"
-                (ngModelChange)="simpleBillAmount.set($event)"
-                placeholder="0.00"
-                min="0"
-                class="input input-large"
+                [ngModel]="newMedicineQty()"
+                (ngModelChange)="newMedicineQty.set($event)"
+                placeholder="Qty"
+                min="1"
+                class="input med-qty"
               />
+              <input
+                type="number"
+                [ngModel]="newMedicinePrice()"
+                (ngModelChange)="onPriceChange($event)"
+                placeholder="Price ₹"
+                min="0"
+                class="input med-price"
+              />
+              <button class="btn btn-add-medicine btn-sm" (click)="addMedicine()">+ Add</button>
             </div>
-          }
 
-          <!-- Detailed Mode -->
-          @if (billMode() === 'detailed') {
-            <div class="medicine-section">
-              <!-- Add Medicine Row -->
-              <div class="add-medicine-row">
-                <div class="medicine-search-wrap med-name">
-                  <input
-                    type="text"
-                    [ngModel]="newMedicineName()"
-                    (ngModelChange)="onMedicineNameChange($event)"
-                    (keydown)="onMedicineKeydown($event)"
-                    (focus)="onMedicineInputFocus()"
-                    (blur)="onMedicineInputBlur()"
-                    placeholder="Medicine name"
-                    class="input"
-                    autocomplete="off"
-                  />
+            @if (medicineLookupLoading()) {
+              <p class="medicine-helper-text">Searching medicines...</p>
+            }
 
-                  @if (showMedicineSuggestions() && medicineSuggestions().length > 0) {
-                    <div class="suggestions-dropdown">
-                      @for (item of medicineSuggestions(); track item.id) {
-                        <button
-                          type="button"
-                          class="suggestion-item"
-                          [class.active]="activeSuggestionIndex() === $index"
-                          (mousedown)="$event.preventDefault()"
-                          (mouseenter)="onSuggestionHover($index)"
-                          (click)="selectMedicineSuggestion(item)"
-                        >
-                          <span class="suggestion-title">{{ item.name }}</span>
-                          <span class="suggestion-meta">
-                            @if (item.packSize) {
-                              {{ item.packSize }}
-                            }
-                            @if (item.manufacturer) {
-                              {{ item.packSize ? ' | ' : '' }}{{ item.manufacturer }}
-                            }
-                            @if (item.mrp != null) {
-                              | MRP ₹{{ item.mrp | number: '1.2-2' }}
-                            } @else {
-                              | MRP not provided
-                            }
-                            | {{ item.source === 'remote' ? 'online' : 'offline' }}
-                          </span>
-                        </button>
-                      }
-                    </div>
-                  }
-                </div>
-                <input
-                  type="number"
-                  [ngModel]="newMedicineQty()"
-                  (ngModelChange)="newMedicineQty.set($event)"
-                  placeholder="Qty"
-                  min="1"
-                  class="input med-qty"
-                />
-                <input
-                  type="number"
-                  [ngModel]="newMedicinePrice()"
-                  (ngModelChange)="onPriceChange($event)"
-                  placeholder="Unit ₹"
-                  min="0"
-                  class="input med-price"
-                />
-                <button class="btn btn-secondary btn-sm" (click)="addMedicine()">+ Add</button>
-              </div>
+            @if (medicineLookupError()) {
+              <p class="medicine-helper-text warning">{{ medicineLookupError() }}</p>
+            }
 
-              @if (medicineLookupLoading()) {
-                <p class="medicine-helper-text">Searching medicines...</p>
-              }
+            @if (newMedicineMrp() != null) {
+              <p class="medicine-helper-text ok">
+                MRP fetched: ₹{{ newMedicineMrp()! | number: '1.2-2' }} — set the Price you actually charge.
+              </p>
+            }
 
-              @if (medicineLookupError()) {
-                <p class="medicine-helper-text warning">{{ medicineLookupError() }}</p>
-              }
+            <!-- Quick misc amount line (#21) -->
+            <div class="quick-misc-row">
+              <span class="quick-misc-label">Quick add (no name):</span>
+              <input
+                type="number"
+                [ngModel]="quickMiscAmount()"
+                (ngModelChange)="quickMiscAmount.set($event)"
+                (keydown.enter)="addQuickMisc()"
+                placeholder="Amount ₹"
+                min="0"
+                class="input quick-misc-input"
+              />
+              <button class="btn btn-ghost btn-sm" (click)="addQuickMisc()">+ Add amount</button>
+            </div>
 
-              @if (newMedicineMrp() != null) {
-                <p class="medicine-helper-text ok">
-                  MRP fetched: ₹{{ newMedicineMrp()! | number: '1.2-2' }}
-                  @if (isPriceOverridden()) {
-                    <span class="override-tag">Manual price override</span>
-                  }
-                </p>
-              } @else if (selectedMedicine()) {
-                <p class="medicine-helper-text warning">
-                  MRP not available from selected source. Enter Unit ₹ manually.
-                </p>
-              }
-
-              <!-- Medicine List -->
-              @if (medicines().length > 0) {
-                <table class="medicine-table">
-                  <thead>
+            <!-- Medicine List -->
+            @if (medicines().length > 0) {
+              <table class="medicine-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>MRP</th>
+                    <th>Qty</th>
+                    <th>Price ₹</th>
+                    <th>Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (med of medicines(); track $index) {
                     <tr>
-                      <th>Medicine</th>
-                      <th>MRP</th>
-                      <th>Qty</th>
-                      <th>Unit ₹</th>
-                      <th>Total</th>
-                      <th></th>
+                      <td>
+                        <div>{{ med.name }}</div>
+                        @if (med.packSize || med.manufacturer) {
+                          <small class="muted-row">
+                            {{ med.packSize ?? '' }}{{ med.packSize && med.manufacturer ? ' | ' : '' }}{{ med.manufacturer ?? '' }}
+                          </small>
+                        }
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          class="input cell-input cell-input-mrp"
+                          [ngModel]="med.mrp ?? null"
+                          (ngModelChange)="updateMedicineMrp($index, $event)"
+                          placeholder="—"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="1"
+                          class="input cell-input cell-input-qty"
+                          [ngModel]="med.quantity"
+                          (ngModelChange)="updateMedicineQty($index, $event)"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          class="input cell-input cell-input-price"
+                          [ngModel]="med.price"
+                          (ngModelChange)="updateMedicinePrice($index, $event)"
+                        />
+                        @if (med.isPriceOverridden) {
+                          <span class="override-tag">≠ MRP</span>
+                        }
+                      </td>
+                      <td><strong>₹{{ (med.quantity * med.price) | number: '1.2-2' }}</strong></td>
+                      <td>
+                        <button class="btn-remove" (click)="removeMedicine($index)">✕</button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    @for (med of medicines(); track $index) {
-                      <tr>
-                        <td>
-                          <div>{{ med.name }}</div>
-                          @if (med.packSize || med.manufacturer) {
-                            <small class="muted-row">
-                              {{ med.packSize ?? '' }}{{ med.packSize && med.manufacturer ? ' | ' : '' }}{{ med.manufacturer ?? '' }}
-                            </small>
-                          }
-                        </td>
-                        <td>
-                          @if (med.mrp != null) {
-                            ₹{{ med.mrp | number: '1.2-2' }}
-                          } @else {
-                            —
-                          }
-                        </td>
-                        <td>{{ med.quantity }}</td>
-                        <td>
-                          ₹{{ med.price | number: '1.2-2' }}
-                          @if (med.isPriceOverridden) {
-                            <span class="override-tag">override</span>
-                          }
-                        </td>
-                        <td><strong>₹{{ (med.quantity * med.price) | number: '1.2-2' }}</strong></td>
-                        <td>
-                          <button class="btn-remove" (click)="removeMedicine($index)">✕</button>
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              } @else {
-                <div class="empty-medicines">Add medicines above to calculate bill</div>
-              }
-            </div>
-          }
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <div class="empty-medicines">Add medicines or a quick amount above to build the bill</div>
+            }
+          </div>
         </div>
 
         <!-- Right Column: Summary & Rewards -->
@@ -277,45 +311,105 @@
           </div>
 
           <div class="summary-rows">
-            <div class="summary-row">
-              <span>Bill Amount</span>
-              <span class="amount">₹{{ billAmount() | number: '1.2-2' }}</span>
+            <!-- Highlighted bill amount (#10) -->
+            <div class="bill-amount-hero">
+              <span class="bill-amount-hero-label">Bill Amount</span>
+              <span class="bill-amount-hero-value">₹{{ billAmount() | number: '1.2-2' }}</span>
             </div>
 
-            <!-- Points to Earn -->
             @if (billAmount() > 0) {
-              <div class="summary-row earn-row">
-                <span>Points to Earn</span>
-                <span class="earn-points">+{{ earnedPoints() }} pts</span>
+              <!-- Minimalist reward approval (#9) -->
+              <div class="reward-block">
+                <div class="reward-block-head">
+                  <span class="panel-kicker">Reward Points</span>
+                  <span class="approval-badge" [class.pending]="!rewardDecisionResolved()">
+                    {{ rewardDecisionResolved() ? 'Approved' : 'Action required' }}
+                  </span>
+                </div>
+
+                @if (billAmount() < rewardConfig().minBillAmountToEarn) {
+                  <p class="hint">Min ₹{{ rewardConfig().minBillAmountToEarn }} bill required to earn points.</p>
+                }
+
+                <div class="reward-credit-line">
+                  <span>Points to credit</span>
+                  <span class="reward-credit-value">
+                    +{{ rewardDecisionResolved() ? approvedEarnedPoints() : suggestedEarnedPoints() }} pts
+                    @if (rewardDecision() === 'customized') {
+                      <span class="reward-tag custom">custom</span>
+                    }
+                  </span>
+                </div>
+
+                <label class="approve-check">
+                  <input
+                    type="checkbox"
+                    [checked]="rewardDecision() === 'accepted'"
+                    (change)="onApproveToggle($any($event.target).checked)"
+                  />
+                  <span>Approve suggested (+{{ suggestedEarnedPoints() }} pts)</span>
+                </label>
+
+                <button type="button" class="link-btn" (click)="toggleCustomPoints()">
+                  {{ showCustomPoints() ? '− Hide custom amount' : '+ Set a custom amount' }}
+                </button>
+
+                @if (showCustomPoints()) {
+                  <div class="reward-custom-row">
+                    <input
+                      type="number"
+                      step="1"
+                      min="0"
+                      [max]="customPointsCap()"
+                      [ngModel]="customEarnedPointsInput()"
+                      (ngModelChange)="onCustomEarnedPointsChange($event)"
+                      class="input reward-custom-input"
+                    />
+                    <button
+                      type="button"
+                      class="btn btn-primary btn-sm"
+                      (click)="applyCustomEarnedPoints()"
+                      [disabled]="customEarnedPointsInput() == null"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                  <p class="hint">Whole numbers only · max {{ customPointsCap() }} pts (cannot exceed bill total).</p>
+                  @if (customPointsWarning()) {
+                    <p class="reward-warning">⚠ That's 10% or more of the bill total — please double-check.</p>
+                  }
+                }
               </div>
-              @if (billAmount() < rewardConfig().minBillAmountToEarn) {
-                <p class="hint">Min ₹{{ rewardConfig().minBillAmountToEarn }} needed to earn points</p>
-              }
             }
 
             <!-- Redeem Section -->
             <div class="redeem-section">
-              <div class="redeem-toggle-row">
-                <label class="toggle-label">
-                  <input
-                    type="checkbox"
-                    [ngModel]="redeemEnabled()"
-                    (ngModelChange)="redeemEnabled.set($event); onRedeemToggle()"
-                    [disabled]="!canRedeem()"
-                  />
-                  <span>Redeem Points</span>
-                </label>
+              <div class="redeem-header-row">
+                <div>
+                  <p class="panel-kicker">Redeem Points</p>
+                  <h4>Apply available balance</h4>
+                </div>
                 @if (!canRedeem() && foundCustomer()!.pointsBalance > 0) {
-                  <span class="hint">Min ₹{{ rewardConfig().minBillAmountToRedeem }} bill required</span>
+                  <span class="redeem-status">Min ₹{{ rewardConfig().minBillAmountToRedeem }} bill required</span>
                 }
                 @if (foundCustomer()!.pointsBalance === 0) {
-                  <span class="hint">No points available</span>
+                  <span class="redeem-status">No points available</span>
                 }
               </div>
 
+              <label class="toggle-label redeem-toggle-label">
+                <input
+                  type="checkbox"
+                  [ngModel]="redeemEnabled()"
+                  (ngModelChange)="redeemEnabled.set($event); onRedeemToggle()"
+                  [disabled]="!canRedeem()"
+                />
+                <span>Use reward points on this bill</span>
+              </label>
+
               @if (redeemEnabled() && canRedeem()) {
                 <div class="redeem-input-row">
-                  <label>Points to Redeem (max {{ maxRedeemable().maxPoints }})</label>
+                  <label>Points to Redeem</label>
                   <input
                     type="range"
                     [ngModel]="pointsToRedeemInput()"
@@ -333,20 +427,21 @@
                       min="0"
                       class="input redeem-num"
                     />
-                    <span class="redeem-equals">= ₹{{ redeemValue() | number: '1.2-2' }} off</span>
+                    <span class="redeem-equals">of {{ maxRedeemable().maxPoints }} pts</span>
                   </div>
                 </div>
                 <div class="summary-row redeem-row">
-                  <span>Discount Applied</span>
+                  <span>Discount</span>
                   <span class="redeem-amount">−₹{{ redeemValue() | number: '1.2-2' }}</span>
                 </div>
               }
             </div>
 
             <div class="summary-divider"></div>
-            <div class="summary-row net-row">
-              <span><strong>Net Amount to Pay</strong></span>
-              <span class="net-amount">₹{{ netAmount() | number: '1.2-2' }}</span>
+            <!-- Highlighted net amount (#10) -->
+            <div class="net-hero">
+              <span class="net-hero-label">Net Amount to Pay</span>
+              <span class="net-hero-value">₹{{ netAmount() | number: '1.2-2' }}</span>
             </div>
           </div>
 
@@ -355,64 +450,196 @@
             (click)="onCompleteTransaction()"
             [disabled]="!canComplete()"
           >
-            Complete Transaction
+            {{ isSubmitting() ? 'Submitting...' : 'Complete Transaction' }}
           </button>
+
+          @if (submitError()) {
+            <p class="completion-note warning">{{ submitError() }}</p>
+          }
+
+          @if (!rewardDecisionResolved() && billAmount() > 0) {
+            <p class="completion-note">Approve reward points to enable bill submission.</p>
+          }
         </div>
       </div>
+
+      @if (hasPurchaseHistory()) {
+        <div class="history-accordions history-accordions-bottom">
+          <!-- Past Bills Accordion (#8: expandable to medicines) -->
+          <section class="accordion" [class.open]="showHistoryBills()">
+            <button
+              type="button"
+              class="accordion-header"
+              (click)="toggleHistoryBills()"
+              [attr.aria-expanded]="showHistoryBills()"
+            >
+              <div class="accordion-title">
+                <span class="accordion-caret" aria-hidden="true">▸</span>
+                <span>Past Bills</span>
+                <span class="accordion-count">{{ customerBills().length }}</span>
+              </div>
+              <span class="accordion-hint">Tap a bill to view items / repeat</span>
+            </button>
+
+            @if (showHistoryBills()) {
+              <ul class="accordion-list">
+                @for (bill of customerBills(); track bill.id) {
+                  <li class="accordion-item-group">
+                    <div class="accordion-item">
+                      <button type="button" class="accordion-item-main as-button" (click)="toggleBillExpanded(bill.id)">
+                        <span class="accordion-caret sm" [class.open]="expandedBillId() === bill.id" aria-hidden="true">▸</span>
+                        <span>
+                          <strong class="accordion-item-title">{{ bill.billNumber }}</strong>
+                          <span class="accordion-item-meta">
+                            {{ formatShortDate(bill.date) }}
+                            @if (bill.medicines && bill.medicines.length > 0) {
+                              • {{ bill.medicines.length }} item{{ bill.medicines.length === 1 ? '' : 's' }}
+                            } @else {
+                              • amount only
+                            }
+                          </span>
+                        </span>
+                      </button>
+                      <div class="accordion-item-side">
+                        <span class="accordion-item-amount">₹{{ bill.billAmount | number: '1.2-2' }}</span>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-secondary accordion-action"
+                          (click)="repeatBill(bill)"
+                        >
+                          Repeat Bill
+                        </button>
+                      </div>
+                    </div>
+
+                    @if (expandedBillId() === bill.id) {
+                      <div class="bill-expand">
+                        @if (bill.medicines && bill.medicines.length > 0) {
+                          <table class="mini-med-table">
+                            <thead>
+                              <tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr>
+                            </thead>
+                            <tbody>
+                              @for (med of bill.medicines; track $index) {
+                                <tr>
+                                  <td>{{ med.name }}</td>
+                                  <td>{{ med.quantity }}</td>
+                                  <td>₹{{ med.price | number: '1.2-2' }}</td>
+                                  <td>₹{{ (med.quantity * med.price) | number: '1.2-2' }}</td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        } @else {
+                          <p class="bill-expand-empty">No itemised medicines — this bill recorded a total only.</p>
+                        }
+                      </div>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+
+          <!-- Distinct Medicines Accordion -->
+          <section class="accordion" [class.open]="showHistoryMedicines()">
+            <button
+              type="button"
+              class="accordion-header"
+              (click)="toggleHistoryMedicines()"
+              [attr.aria-expanded]="showHistoryMedicines()"
+            >
+              <div class="accordion-title">
+                <span class="accordion-caret" aria-hidden="true">▸</span>
+                <span>Previously Bought Medicines</span>
+                <span class="accordion-count">{{ customerDistinctMedicines().length }}</span>
+              </div>
+              <span class="accordion-hint">Tap to add to current bill</span>
+            </button>
+
+            @if (showHistoryMedicines()) {
+              @if (customerDistinctMedicines().length > 0) {
+                <ul class="accordion-list">
+                  @for (med of customerDistinctMedicines(); track $index) {
+                    <li class="accordion-item">
+                      <div class="accordion-item-main">
+                        <strong class="accordion-item-title">{{ med.name }}</strong>
+                        @if (med.packSize || med.manufacturer) {
+                          <span class="accordion-item-meta">
+                            {{ med.packSize ?? '' }}{{ med.packSize && med.manufacturer ? ' • ' : '' }}{{ med.manufacturer ?? '' }}
+                          </span>
+                        }
+                      </div>
+                      <div class="accordion-item-side">
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-secondary accordion-action"
+                          (click)="addMedicineFromHistory(med)"
+                        >
+                          + Add Item
+                        </button>
+                      </div>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <div class="accordion-empty">
+                  No medicine line items recorded yet. Build itemised bills to populate this list.
+                </div>
+              }
+            }
+          </section>
+        </div>
+      }
     </div>
   }
 
   <!-- STEP: COMPLETE -->
   @if (step() === 'complete') {
     <div class="step-card complete-card">
-      <div class="success-icon" aria-hidden="true">
+      <div class="success-icon no-print" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
           <path d="m8.2 12.3 2.4 2.4 5.3-5.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <h2>Transaction Complete!</h2>
+      <h2 class="no-print">Transaction Complete!</h2>
 
       @if (lastTransaction(); as tx) {
-        <div class="receipt">
-          <div class="receipt-row">
-            <span>Customer</span>
-            <strong>{{ tx.customerName }}</strong>
-          </div>
-          <div class="receipt-row">
-            <span>Mobile</span>
-            <span>{{ tx.customerMobile }}</span>
-          </div>
-          <div class="receipt-row">
-            <span>Bill Amount</span>
-            <span>₹{{ tx.billAmount | number: '1.2-2' }}</span>
-          </div>
-          @if (tx.pointsRedeemed > 0) {
-            <div class="receipt-row">
-              <span>Points Redeemed</span>
-              <span class="redeem-amount">−{{ tx.pointsRedeemed }} pts (₹{{ tx.redeemedValue | number: '1.2-2' }})</span>
-            </div>
-          }
-          <div class="receipt-row net-row">
-            <span><strong>Net Paid</strong></span>
-            <strong>₹{{ tx.netAmount | number: '1.2-2' }}</strong>
-          </div>
-          <div class="receipt-divider"></div>
-          <div class="receipt-row">
-            <span>Points Earned</span>
-            <span class="earn-points">+{{ tx.pointsEarned }} pts</span>
-          </div>
-          <div class="receipt-row">
-            <span>New Points Balance</span>
-            <strong class="earn-points">{{ tx.newBalance }} pts</strong>
-          </div>
+        <div class="print-area">
+          <app-bill-receipt [transaction]="tx" [newBalance]="lastBalance()" />
         </div>
       }
 
-      <div class="complete-actions">
-        <button class="btn btn-primary" (click)="onNewBillSameCustomer()">New Bill (Same Customer)</button>
-        <button class="btn btn-secondary" (click)="onViewCustomer()">View Customer</button>
+      <div class="complete-actions no-print">
+        <button class="btn btn-context-action" (click)="printBill()">🖨 Print Bill</button>
+        <button class="btn btn-secondary" (click)="onNewBillSameCustomer()">New Bill (Same Customer)</button>
+        <button class="btn btn-secondary" (click)="onViewCustomer()">Customer Home</button>
         <button class="btn btn-ghost" (click)="onNewBill()">New Customer</button>
+      </div>
+    </div>
+  }
+
+  <!-- Choice modal (replaces window.confirm, #15a) -->
+  @if (choicePrompt(); as prompt) {
+    <div class="modal-overlay no-print" (click)="resolveChoice(null)">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <h3 class="modal-title">{{ prompt.title }}</h3>
+        <p class="modal-message">{{ prompt.message }}</p>
+        <div class="modal-actions">
+          @for (action of prompt.actions; track action.value) {
+            <button
+              type="button"
+              class="btn"
+              [class.btn-primary]="action.variant === 'primary'"
+              [class.btn-secondary]="action.variant === 'secondary'"
+              [class.btn-ghost]="action.variant === 'ghost'"
+              (click)="resolveChoice(action.value)"
+            >
+              {{ action.label }}
+            </button>
+          }
+        </div>
       </div>
     </div>
   }

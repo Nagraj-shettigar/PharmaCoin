@@ -10,10 +10,58 @@
   </a>
 
   <div class="nav-links">
+    <!-- Current staff switcher (#20) -->
+    @if (staffList.length > 0) {
+      <div class="staff-switcher-wrap">
+        <button
+          type="button"
+          class="staff-switcher"
+          [class.open]="staffMenuOpen()"
+          (click)="toggleStaffMenu()"
+          title="Staff currently billing"
+        >
+          <span class="staff-switcher-icon" aria-hidden="true">👤</span>
+          <span class="staff-switcher-name">{{ staffService.activeStaff() || 'Select staff' }}</span>
+          <span class="staff-switcher-caret" aria-hidden="true">▾</span>
+        </button>
+
+        @if (staffMenuOpen()) {
+          <div class="staff-menu-backdrop" (click)="closeStaffMenu()"></div>
+          <ul class="staff-menu">
+            @for (name of staffList; track name) {
+              <li>
+                <button
+                  type="button"
+                  class="staff-menu-item"
+                  [class.active]="name === staffService.activeStaff()"
+                  (click)="selectStaff(name)"
+                >
+                  <span>{{ name }}</span>
+                  @if (name === staffService.activeStaff()) {
+                    <span class="staff-menu-check" aria-hidden="true">✓</span>
+                  }
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    } @else {
+      <a routerLink="/admin" class="staff-add-hint">+ Add staff</a>
+    }
+
+    <span
+      class="data-status-chip"
+      [class.live]="bootstrapDataService.status() === 'live'"
+      [class.offline]="bootstrapDataService.status() === 'offline'"
+    >
+      {{ hydrationLabel }}
+    </span>
+
     <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
       Dashboard
     </a>
-    <a routerLink="/billing" routerLinkActive="active" class="btn-new-bill">
+    <a routerLink="/billing" routerLinkActive="active" class="btn-context-action btn-context-action-compact">
       + New Bill
     </a>
     <a routerLink="/admin" routerLinkActive="active">
