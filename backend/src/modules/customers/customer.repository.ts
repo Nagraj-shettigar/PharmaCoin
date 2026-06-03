@@ -1,4 +1,4 @@
-import { pool } from '../../db/pool';
+import { Queryable } from '../../db/client';
 
 export interface CustomerLookupRow {
   id: string;
@@ -30,8 +30,8 @@ export interface UpsertCustomerInput {
   name: string;
 }
 
-export async function findCustomerByMobile(mobile: string): Promise<CustomerLookupRow | null> {
-  const result = await pool.query<CustomerLookupRow>(
+export async function findCustomerByMobile(db: Queryable, mobile: string): Promise<CustomerLookupRow | null> {
+  const result = await db.query<CustomerLookupRow>(
     `
     select c.id, c.name, c.mobile, coalesce(la.current_balance, 0) as points_balance
     from customers c
@@ -45,8 +45,8 @@ export async function findCustomerByMobile(mobile: string): Promise<CustomerLook
   return result.rows[0] ?? null;
 }
 
-export async function findLatestInvoiceByCustomer(customerId: string): Promise<LatestInvoiceRow | null> {
-  const result = await pool.query<LatestInvoiceRow>(
+export async function findLatestInvoiceByCustomer(db: Queryable, customerId: string): Promise<LatestInvoiceRow | null> {
+  const result = await db.query<LatestInvoiceRow>(
     `
     select id, bill_number, net_amount, created_at
     from invoices
@@ -60,8 +60,8 @@ export async function findLatestInvoiceByCustomer(customerId: string): Promise<L
   return result.rows[0] ?? null;
 }
 
-export async function upsertCustomerByMobile(input: UpsertCustomerInput): Promise<CustomerLookupRow> {
-  const result = await pool.query<CustomerLookupRow>(
+export async function upsertCustomerByMobile(db: Queryable, input: UpsertCustomerInput): Promise<CustomerLookupRow> {
+  const result = await db.query<CustomerLookupRow>(
     `
     with upserted as (
       insert into customers (organization_id, store_id, mobile, name)
@@ -84,8 +84,8 @@ export async function upsertCustomerByMobile(input: UpsertCustomerInput): Promis
   return result.rows[0];
 }
 
-export async function listCustomers(limit: number): Promise<CustomerListRow[]> {
-  const result = await pool.query<CustomerListRow>(
+export async function listCustomers(db: Queryable, limit: number): Promise<CustomerListRow[]> {
+  const result = await db.query<CustomerListRow>(
     `
     select
       c.id,

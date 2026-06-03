@@ -1,68 +1,69 @@
 # HealthPoints Backend
 
-Initial implementation scaffold for the HealthPoints API.
+HealthPoints API — **Hono on Cloudflare Workers**, **Neon** Postgres (serverless driver), Zod validation.
 
 ## Tech
-- Node.js + TypeScript
-- Express
-- PostgreSQL (`pg`)
+- Hono (runs on Cloudflare Workers)
+- Neon serverless Postgres driver (`@neondatabase/serverless`)
 - Zod for request validation
+- Migrations run in Node via `pg` (`src/db/migrate.ts`)
 
-## Quick Start
-
-1. Copy env file:
-
-```bash
-cp .env.example .env
-```
-
-2. Install dependencies:
+## Local development
 
 ```bash
 npm install
+cp .dev.vars.example .dev.vars     # set DATABASE_URL to your Neon DEV branch URL
+npm run dev                        # wrangler dev → http://localhost:8787
 ```
 
-3. Create database and run migration:
+`wrangler dev` reads `.dev.vars` (gitignored) for `DATABASE_URL` and `CORS_ORIGIN`.
+
+## Migrations
 
 ```bash
-psql "$DATABASE_URL" -f migrations/001_init.sql
+# DATABASE_URL comes from backend/.env (gitignored)
+npm run migrate                    # applies all pending migrations idempotently
 ```
 
-4. Start dev server:
+## Deploy (Cloudflare)
 
 ```bash
-npm run dev
+npx wrangler login                 # once
+
+# secrets (per environment)
+npx wrangler secret put DATABASE_URL --env dev          # Neon DEV pooled URL
+npx wrangler secret put DATABASE_URL --env production    # Neon PROD pooled URL
+
+npm run deploy:dev                 # → healthpoints-api-dev.workers.dev
+npm run deploy:prod                # → healthpoints-api.workers.dev
 ```
 
-Server runs at `http://localhost:4000` by default.
+Environment config (Worker names, `CORS_ORIGIN`) lives in `wrangler.toml`.
 
-## Initial endpoints
-- `GET /api/v1`
-- `GET /api/v1/health`
-- `GET /api/v1/customers?mobile=9663192245`
-- `POST /api/v1/invoices`
+## Endpoints (base `…/api/v1`)
+- `GET  /` — service info
+- `GET  /health` — DB connectivity check
+- `GET  /context/default` — seed/return demo org + store ids
+- `GET  /customers?mobile=9663192245` — lookup by mobile
+- `GET  /customers/all?limit=500` — list customers
+- `POST /customers` — upsert customer
+- `GET  /invoices?limit=500` — list invoices
+- `POST /invoices` — create invoice (transactional, idempotent on `clientTransactionId` → 409 on duplicate)
 
 ### Create invoice payload
 
 ```json
 {
-	"organizationId": "3d2f8d4f-c433-4f4c-bbc8-e6958ad88f8f",
-	"storeId": "0d8475af-5978-4f5e-97b9-47589e36d6c9",
-	"customerName": "Asha",
-	"customerMobile": "9663192245",
-	"grossAmount": 1200,
-	"discountAmount": 100,
-	"pointsEarned": 11,
-	"pointsRedeemed": 5,
-	"redemptionValue": 5,
-	"clientTransactionId": "txn-20260602-101010",
-	"businessDate": "2026-06-02"
+  "organizationId": "3d2f8d4f-c433-4f4c-bbc8-e6958ad88f8f",
+  "storeId": "0d8475af-5978-4f5e-97b9-47589e36d6c9",
+  "customerName": "Asha",
+  "customerMobile": "9663192245",
+  "grossAmount": 1200,
+  "discountAmount": 100,
+  "pointsEarned": 11,
+  "pointsRedeemed": 5,
+  "redemptionValue": 5,
+  "clientTransactionId": "txn-20260602-101010",
+  "businessDate": "2026-06-02"
 }
 ```
-
-## Next implementation targets
-- Auth + JWT
-- Invoice create transaction
-- Bill number sequence generation
-- Loyalty ledger and balance updates
-- Offline sync batch endpoint

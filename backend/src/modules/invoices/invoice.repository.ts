@@ -1,4 +1,4 @@
-import { pool } from '../../db/pool';
+import { Queryable } from '../../db/client';
 
 export interface InvoiceMedicineLine {
   medicineId?: string | null;
@@ -29,8 +29,8 @@ export interface InvoiceListRow {
   created_at: string;
 }
 
-export async function listInvoices(limit: number): Promise<InvoiceListRow[]> {
-  const result = await pool.query<InvoiceListRow>(
+export async function listInvoices(db: Queryable, limit: number): Promise<InvoiceListRow[]> {
+  const result = await db.query<InvoiceListRow>(
     `
     select
       id,

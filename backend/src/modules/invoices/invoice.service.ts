@@ -1,5 +1,4 @@
-import { PoolClient } from 'pg';
-import { pool } from '../../db/pool';
+import { Pool, Queryable } from '../../db/client';
 
 export interface InvoiceMedicineLine {
   medicineId?: string | null;
@@ -73,7 +72,7 @@ function padSequence(value: number): string {
   return String(value).padStart(4, '0');
 }
 
-async function getStoreCode(client: PoolClient, organizationId: string, storeId: string): Promise<string> {
+async function getStoreCode(client: Queryable, organizationId: string, storeId: string): Promise<string> {
   const result = await client.query<StoreRow>(
     `
     select code
@@ -93,7 +92,7 @@ async function getStoreCode(client: PoolClient, organizationId: string, storeId:
 }
 
 async function upsertCustomer(
-  client: PoolClient,
+  client: Queryable,
   organizationId: string,
   storeId: string,
   customerName: string,
@@ -116,7 +115,7 @@ async function upsertCustomer(
   return result.rows[0].id;
 }
 
-async function nextSequence(client: PoolClient, storeId: string, businessDate: string): Promise<number> {
+async function nextSequence(client: Queryable, storeId: string, businessDate: string): Promise<number> {
   const result = await client.query<SequenceRow>(
     `
     insert into invoice_sequences (store_id, business_date, last_value)
@@ -131,7 +130,7 @@ async function nextSequence(client: PoolClient, storeId: string, businessDate: s
   return Number(result.rows[0].last_value);
 }
 
-async function upsertLoyaltyAccount(client: PoolClient, customerId: string, deltaPoints: number): Promise<number> {
+async function upsertLoyaltyAccount(client: Queryable, customerId: string, deltaPoints: number): Promise<number> {
   const result = await client.query<LoyaltyBalanceRow>(
     `
     insert into loyalty_accounts (customer_id, current_balance)
@@ -155,7 +154,7 @@ function ensureNonNegativeBalance(balance: number): void {
 }
 
 async function insertInvoice(
-  client: PoolClient,
+  client: Queryable,
   input: CreateInvoiceInput,
   customerId: string,
   businessDate: string,
@@ -207,7 +206,7 @@ async function insertInvoice(
 }
 
 async function insertLoyaltyLedger(
-  client: PoolClient,
+  client: Queryable,
   organizationId: string,
   storeId: string,
   customerId: string,
@@ -252,7 +251,7 @@ async function insertLoyaltyLedger(
   }
 }
 
-export async function createInvoice(input: CreateInvoiceInput): Promise<CreateInvoiceResult> {
+export async function createInvoice(pool: Pool, input: CreateInvoiceInput): Promise<CreateInvoiceResult> {
   const businessDate = toBusinessDate(input.businessDate);
   const netAmount = input.grossAmount - input.discountAmount - input.redemptionValue;
 
