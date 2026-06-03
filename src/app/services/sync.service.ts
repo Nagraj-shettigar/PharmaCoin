@@ -5,13 +5,15 @@ import { TransactionService } from './transaction.service';
 import { StorageService } from './storage.service';
 import { SyncConfig, DEFAULT_SYNC_CONFIG } from '../models/sync-config.model';
 import { Transaction } from '../models/transaction.model';
+import { environment } from '../../environments/environment';
 
 const CONFIG_KEY = 'hp_sync_config';
 const ACTIVITY_KEY = 'hp_sync_activity';
 const MAX_ACTIVITY_ITEMS = 30;
 
 // Fallback used when no Server API URL has been configured in Admin > Sync Settings.
-export const DEFAULT_API_V1_BASE = 'http://localhost:4000/api/v1';
+// Defaults to the backend Worker for this build (dev build → dev Worker, prod → prod).
+export const DEFAULT_API_V1_BASE = environment.apiBaseUrl;
 
 export interface SyncActivityItem {
   id: string;
